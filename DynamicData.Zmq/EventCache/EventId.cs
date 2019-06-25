@@ -30,7 +30,6 @@ namespace ZeroMQPlayground.DynamicData.EventCache
                    Subject == id.Subject &&
                    Id == id.Id;
         }
-
         public override int GetHashCode()
         {
             unchecked
@@ -40,6 +39,11 @@ namespace ZeroMQPlayground.DynamicData.EventCache
                 hash = hash * 23 + Id.GetHashCode();
                 return hash;
             }
+        }
+
+        public override string ToString()
+        {
+            return Id;
         }
     }
 }

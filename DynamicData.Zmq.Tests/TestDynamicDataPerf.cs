@@ -54,6 +54,84 @@ namespace ZeroMQPlayground.DynamicData
         }
 
         [Test]
+        public async Task ShouldCheckMaxPerformance()
+        {
+            var eventIdProvider = new InMemoryEventIdProvider();
+            var serializer = new JsonNetSerializer();
+            var eventSerializer = new EventSerializer(serializer);
+
+            var eventCache = new InMemoryEventCache(eventIdProvider, eventSerializer);
+
+            var brokerConfiguration = new BrokerageServiceConfiguration()
+            {
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                ToSubscribersEndpoint = ToSubscribersEndpoint,
+                ToPublisherEndpoint = ToPublishersEndpoint
+            };
+
+            var router = new BrokerageService(brokerConfiguration, eventCache, serializer);
+
+            var marketConfiguration = new ProducerConfiguration()
+            {
+                RouterEndpoint = ToPublishersEndpoint,
+                HearbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
+
+            var market1 = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(30));
+            var market2 = new Market("Harmony", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(30));
+
+            await router.Run();
+
+            await Task.Delay(1000);
+
+            await market1.Run();
+            await market2.Run();
+ 
+
+            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+            {
+                Subject = string.Empty,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
+
+            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
+
+            await cache.Run();
+
+            await Task.Delay(5000);
+
+            await Task.WhenAll(new[] {
+                router.Destroy(),
+                market1.Destroy(),
+                market2.Destroy(),
+                cache.Destroy() });
+
+            var cacheEvents = cache.GetItems()
+                       .SelectMany(item => item.AppliedEvents)
+                       .Cast<IEvent<string, CurrencyPair>>()
+                       .GroupBy(ev => ev.EventStreamId)
+                       .ToList();
+
+
+            Assert.Greater(cacheEvents.Count, 0);
+
+            foreach (var grp in cacheEvents)
+            {
+                var index = 0;
+
+                foreach (var ev in grp)
+                {
+                    Assert.AreEqual(index++, ev.Version);
+                }
+            }
+
+        }
+
+        [Test]
         public async Task ShouldCheckMinimumPerformance()
         {
             var eventIdProvider = new InMemoryEventIdProvider();
@@ -78,7 +156,7 @@ namespace ZeroMQPlayground.DynamicData
                 HearbeatEndpoint = HeartbeatEndpoint
             };
 
-            var market = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(10));
+            var market = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(20));
       
             await router.Run();
 
@@ -87,22 +165,20 @@ namespace ZeroMQPlayground.DynamicData
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
                 Subject = string.Empty,
-                HeartbeatDelay = TimeSpan.FromSeconds(10),
-                HeartbeatTimeout = TimeSpan.FromSeconds(2)
+                HeartbeatDelay = TimeSpan.FromMilliseconds(500),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
             var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
        
             await cache.Run();
 
-            //fire a little less than 300 events
-            await Task.Delay(5000);
+            await Task.Delay(3000);
 
             var cacheItems = cache.GetItems().ToList();
             var cacheItemsEvents = cacheItems.SelectMany(items=> items.AppliedEvents).ToList();
 
-            //At least 3/4 events should be processed
-            Assert.Greater((double)cacheItemsEvents.Count / (double)market.Prices.Count, 0.75);
+            Assert.Greater((double)cacheItemsEvents.Count / (double)market.Prices.Count, 0.80);
 
 
             await Task.WhenAll(new[] { router.Destroy(), market.Destroy(), cache.Destroy() });

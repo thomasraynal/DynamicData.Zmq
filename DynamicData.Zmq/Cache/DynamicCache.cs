@@ -27,19 +27,21 @@ namespace ZeroMQPlayground.DynamicData.Cache
         private ConfiguredTaskAwaitable _workProc;
         private ConfiguredTaskAwaitable _heartbeatProc;
 
-        private BehaviorSubject<DynamicCacheState> _state;
+        private readonly BehaviorSubject<DynamicCacheState> _state;
         private SubscriberSocket _cacheUpdateSocket;
         private readonly IEventSerializer _eventSerializer;
 
-        private readonly object _caughtingUpLock = new object();
         private volatile bool _isCaughtUpProcess;
         private readonly CaughtingUpCache<TKey, TAggregate> _caughtingUpCache;
 
+        private readonly ManualResetEventSlim _resetEvent;
         private readonly SourceCache<TAggregate, TKey> _sourceCache;
 
         public DynamicCache(IDynamicCacheConfiguration configuration, IEventSerializer eventSerializer)
         {
-   
+
+            _resetEvent = new ManualResetEventSlim(true);
+
             _eventSerializer = eventSerializer;
             _configuration = configuration;
             _sourceCache = new SourceCache<TAggregate, TKey>(selector => selector.Id);
@@ -90,7 +92,6 @@ namespace ZeroMQPlayground.DynamicData.Cache
                 return _eventSerializer.Serializer.Deserialize<StateReply>(responseBytes);
 
             }
-
         }
 
         private void HandleHeartbeat()
@@ -208,19 +209,17 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
         private void OnEventReceived(IEvent<TKey, TAggregate> @event)
         {
-            //if we're trying to catchup with the event feed after a disconnect
+
             if (_isCaughtUpProcess)
             {
-                //we try to acquire the lock and process the event on the catchup feed
-                lock (_caughtingUpLock)
+                _resetEvent.Wait();
+
+                if (_isCaughtUpProcess)
                 {
-                    //we got the lock - has the caughtup feed process ended meanwhile? if so, process the event on the main feed
-                    if (_isCaughtUpProcess)
-                    {
-                        _caughtingUpCache.CaughtUpEvents.Add(@event);
-                        return;
-                    }
+                    _caughtingUpCache.CaughtUpEvents.Add(@event);
+                    return;
                 }
+
             }
 
             ApplyEvent(@event);
@@ -232,7 +231,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
             while(CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
             {
-                Task.Delay(100);
+                Thread.Sleep(100);
             }
 
             _sourceCache.Edit((updater) =>
@@ -273,23 +272,24 @@ namespace ZeroMQPlayground.DynamicData.Cache
                     update(@event);
                 }
 
-                lock (_caughtingUpLock)
+                _resetEvent.Reset();
+
+                var replayEvents = _caughtingUpCache.CaughtUpEvents
+                                                .Where(ev => !stateOfTheWorld.Events.Any(msg => msg.EventId.Id == ev.EventId))
+                                                .ToList();
+
+                foreach (var @event in replayEvents)
                 {
-
-                    var replayEvents = _caughtingUpCache.CaughtUpEvents
-                                                        .Where(ev => !stateOfTheWorld.Events.Any(msg => msg.EventId.Id == ev.EventId))
-                                                        .ToList();
-
-                    foreach (var @event in replayEvents)
-                    {
-                        update(@event);
-                    }
-
+                    update(@event);
                 }
+
+               
 
             });
 
             _isCaughtUpProcess = false;
+
+            _resetEvent.Set();
 
             _caughtingUpCache.Clear();
         }

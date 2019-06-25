@@ -20,8 +20,8 @@ namespace ZeroMQPlayground.DynamicData.Default
 
         public IEventId Next(string streamName, string subject)
         {
-            lock (_lock)
-            {
+            //lock (_lock)
+            //{
 
                 var version = -1L;
 
@@ -47,6 +47,6 @@ namespace ZeroMQPlayground.DynamicData.Default
                 return eventId;
 
             }
-        }
+        //}
     }
 }
