@@ -1,16 +1,13 @@
 ﻿using NetMQ;
 using NetMQ.Sockets;
 using System;
-using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using ZeroMQPlayground.DynamicData.Dto;
 using ZeroMQPlayground.DynamicData.Event;
-using ZeroMQPlayground.DynamicData.Producer;
 using ZeroMQPlayground.DynamicData.Shared;
 
 namespace ZeroMQPlayground.DynamicData.Producer
@@ -45,15 +42,17 @@ namespace ZeroMQPlayground.DynamicData.Producer
             _configuration = producerConfiguration;
             _cancel = new CancellationTokenSource();
 
-            _state = new BehaviorSubject<ProducerState>(ProducerState.None);
+            _state = new BehaviorSubject<ProducerState>(ProducerState.NotConnected);
         }
 
         protected override Task RunInternal()
         {
-            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token).ConfigureAwait(false);
-
+          
             _publisherSocket = new PublisherSocket();
             _publisherSocket.Connect(_configuration.RouterEndpoint);
+
+            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token).ConfigureAwait(false);
+
 
             return Task.CompletedTask;
         }
@@ -75,11 +74,12 @@ namespace ZeroMQPlayground.DynamicData.Producer
         {
             while (!_cancel.IsCancellationRequested)
             {
+
                 using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
                 {
-                    var payload = _eventSerializer.Serializer.Serialize(Heartbeat.Query);
+                    var query = _eventSerializer.Serializer.Serialize(Heartbeat.Query);
 
-                    heartbeat.SendFrame(payload);
+                    heartbeat.SendFrame(query);
 
                     var response = heartbeat.TryReceiveFrameBytes(_configuration.HeartbeatTimeout, out var responseBytes);
 
@@ -91,11 +91,11 @@ namespace ZeroMQPlayground.DynamicData.Producer
                     {
                         case ProducerState.Connected:
 
-                            if (_state.Value == ProducerState.None || _state.Value == ProducerState.Disconnected)
+                            if (_state.Value == ProducerState.NotConnected || _state.Value == ProducerState.Disconnected)
                             {
                                 _state.OnNext(currentState);
                             }
-                
+
                             break;
 
                         case ProducerState.Disconnected:
@@ -108,10 +108,9 @@ namespace ZeroMQPlayground.DynamicData.Producer
                             break;
                     }
 
+                    Thread.Sleep(_configuration.HeartbeatDelay.Milliseconds);
+
                 }
-
-                Thread.Sleep(_configuration.HeartbeatDelay.Milliseconds);
-
             }
         }
 

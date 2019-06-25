@@ -68,7 +68,7 @@ namespace ZeroMQPlayground.DynamicData.Demo
 
                 if (_cancel.IsCancellationRequested) return;
 
-                if (ProducerState == Producer.ProducerState.Connected)
+                if (ProducerState == ProducerState.Connected)
                 {
                     var changePrice = Next();
 

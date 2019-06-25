@@ -19,10 +19,10 @@ namespace ZeroMQPlayground.DynamicData
     [TestFixture]
     public class TestDynamicDataPerf
     {
-        private string ToPublishersEndpoint = "tcp://localhost:8080";
-        private string ToSubscribersEndpoint = "tcp://localhost:8181";
-        private string HeartbeatEndpoint = "tcp://localhost:8282";
-        private string StateOfTheWorldEndpoint = "tcp://localhost:8383";
+        private readonly string ToPublishersEndpoint = "tcp://localhost:8080";
+        private readonly string ToSubscribersEndpoint = "tcp://localhost:8181";
+        private readonly string HeartbeatEndpoint = "tcp://localhost:8282";
+        private readonly string StateOfTheWorldEndpoint = "tcp://localhost:8383";
 
         [TearDown]
         public void TearDown()
@@ -96,15 +96,16 @@ namespace ZeroMQPlayground.DynamicData
             await cache.Run();
 
             //fire a little less than 300 events
-            await Task.Delay(3000);
-
-            await Task.WhenAll(new[] { router.Destroy(), market.Destroy(), cache.Destroy() });
+            await Task.Delay(5000);
 
             var cacheItems = cache.GetItems().ToList();
             var cacheItemsEvents = cacheItems.SelectMany(items=> items.AppliedEvents).ToList();
 
             //At least 3/4 events should be processed
             Assert.Greater((double)cacheItemsEvents.Count / (double)market.Prices.Count, 0.75);
+
+
+            await Task.WhenAll(new[] { router.Destroy(), market.Destroy(), cache.Destroy() });
 
 
         }

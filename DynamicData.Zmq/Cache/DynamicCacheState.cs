@@ -6,7 +6,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
 {
     public enum DynamicCacheState
     {
-        None,
+        NotConnected,
         Disconnected,
         Staled,
         Connected,

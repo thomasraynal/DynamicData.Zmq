@@ -10,6 +10,7 @@ namespace ZeroMQPlayground.DynamicData.Default
     {
         private readonly Dictionary<string, long> _eventStreamsVersionGenerator;
         private readonly List<IEventId> _eventIds;
+        private readonly object _lock = new object();
 
         public InMemoryEventIdProvider()
         {
@@ -19,28 +20,33 @@ namespace ZeroMQPlayground.DynamicData.Default
 
         public IEventId Next(string streamName, string subject)
         {
-            var version = -1L;
-
-            if (!_eventStreamsVersionGenerator.ContainsKey(streamName))
+            lock (_lock)
             {
-                _eventStreamsVersionGenerator.Add(streamName, ++version);
+
+                var version = -1L;
+
+                if (!_eventStreamsVersionGenerator.ContainsKey(streamName))
+                {
+                    _eventStreamsVersionGenerator.Add(streamName, ++version);
+                }
+                else
+                {
+                    version = ++_eventStreamsVersionGenerator[streamName];
+                }
+
+                var eventId = new EventId()
+                {
+                    EventStream = streamName,
+                    Subject = subject,
+                    Version = version,
+                    Timestamp = DateTime.Now.Ticks
+                };
+
+                _eventIds.Add(eventId);
+
+                return eventId;
+
             }
-            else
-            {
-                version = ++_eventStreamsVersionGenerator[streamName];
-            }
-
-            var eventId = new EventId()
-            {
-                EventStream = streamName,
-                Subject = subject,
-                Version = version,
-                Timestamp = DateTime.Now.Ticks
-            };
-
-            _eventIds.Add(eventId);
-
-            return eventId;
         }
     }
 }

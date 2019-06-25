@@ -6,7 +6,7 @@ namespace ZeroMQPlayground.DynamicData.Producer
 {
     public enum ProducerState
     {
-        None,
+        NotConnected,
         Disconnected,
         Connected
     }

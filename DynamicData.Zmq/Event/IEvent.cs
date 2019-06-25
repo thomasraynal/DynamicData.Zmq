@@ -4,6 +4,7 @@ using System.Text;
 
 namespace ZeroMQPlayground.DynamicData.Event
 {
+    //todo: string representation of event stream id
     public interface IEvent
     {
         string EventId { get; }

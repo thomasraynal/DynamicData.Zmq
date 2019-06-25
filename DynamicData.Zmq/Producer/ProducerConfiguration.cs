@@ -9,7 +9,7 @@ namespace ZeroMQPlayground.DynamicData.Producer
         public ProducerConfiguration()
         {
             HeartbeatDelay = TimeSpan.FromSeconds(10);
-            HeartbeatTimeout = TimeSpan.FromSeconds(10);
+            HeartbeatTimeout = TimeSpan.FromSeconds(1);
         }
 
         public string RouterEndpoint { get; set; }

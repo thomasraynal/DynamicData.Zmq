@@ -32,7 +32,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
         private readonly IEventSerializer _eventSerializer;
 
         private readonly object _caughtingUpLock = new object();
-        private volatile bool _isCaughtingUp;
+        private volatile bool _isCaughtUpProcess;
         private readonly CaughtingUpCache<TKey, TAggregate> _caughtingUpCache;
 
         private readonly SourceCache<TAggregate, TKey> _sourceCache;
@@ -44,7 +44,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
             _configuration = configuration;
             _sourceCache = new SourceCache<TAggregate, TKey>(selector => selector.Id);
             _cancel = new CancellationTokenSource();
-            _state = new BehaviorSubject<DynamicCacheState>(DynamicCacheState.None);
+            _state = new BehaviorSubject<DynamicCacheState>(DynamicCacheState.NotConnected);
             _caughtingUpCache = new CaughtingUpCache<TKey, TAggregate>();
 
         }
@@ -113,7 +113,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
                     {
                         case DynamicCacheState.Connected:
 
-                            if (_state.Value == DynamicCacheState.None || _state.Value == DynamicCacheState.Reconnected || _state.Value == DynamicCacheState.Staled)
+                            if (_state.Value == DynamicCacheState.NotConnected || _state.Value == DynamicCacheState.Reconnected || _state.Value == DynamicCacheState.Staled)
                             {
                                 _state.OnNext(currentState);
                             }
@@ -150,6 +150,10 @@ namespace ZeroMQPlayground.DynamicData.Cache
                 _cacheUpdateSocket.Subscribe(_configuration.Subject);
                 _cacheUpdateSocket.Connect(_configuration.SubscriptionEndpoint);
 
+                _isCaughtUpProcess = true;
+
+                Task.Run(CaughtUpToStateOfTheWorld);
+
                 while (!_cancel.IsCancellationRequested)
                 {
 
@@ -171,7 +175,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
                         OnEventReceived(@event);
                     }
-                    else
+                    else if (_state.Value == DynamicCacheState.Connected)
                     {
                         _state.OnNext(DynamicCacheState.Staled);
                     }
@@ -205,13 +209,13 @@ namespace ZeroMQPlayground.DynamicData.Cache
         private void OnEventReceived(IEvent<TKey, TAggregate> @event)
         {
             //if we're trying to catchup with the event feed after a disconnect
-            if (_isCaughtingUp)
+            if (_isCaughtUpProcess)
             {
                 //we try to acquire the lock and process the event on the catchup feed
                 lock (_caughtingUpLock)
                 {
                     //we got the lock - has the caughtup feed process ended meanwhile? if so, process the event on the main feed
-                    if (_isCaughtingUp)
+                    if (_isCaughtUpProcess)
                     {
                         _caughtingUpCache.CaughtUpEvents.Add(@event);
                         return;
@@ -222,75 +226,86 @@ namespace ZeroMQPlayground.DynamicData.Cache
             ApplyEvent(@event);
         }
 
+        private void CaughtUpToStateOfTheWorld()
+        {
+            _isCaughtUpProcess = true;
+
+            while(CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
+            {
+                Task.Delay(100);
+            }
+
+            _sourceCache.Edit((updater) =>
+            {
+                updater.Clear();
+
+                var stateOfTheWorld = GetStateOfTheWorld();
+
+                var update = new Action<IEvent<TKey, TAggregate>>((@event) =>
+                {
+
+                    var aggregate = updater.Lookup(@event.EventStreamId);
+
+                    if (!aggregate.HasValue)
+                    {
+                        var @new = new TAggregate
+                        {
+                            Id = @event.EventStreamId
+                        };
+
+                        @new.Apply(@event);
+
+                        updater.AddOrUpdate(@new);
+                    }
+                    else
+                    {
+                        aggregate.Value.Apply(@event);
+
+                        updater.AddOrUpdate(aggregate.Value);
+                    }
+
+                });
+
+                foreach (var eventMessage in stateOfTheWorld.Events)
+                {
+                    var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventMessage);
+
+                    update(@event);
+                }
+
+                lock (_caughtingUpLock)
+                {
+
+                    var replayEvents = _caughtingUpCache.CaughtUpEvents
+                                                        .Where(ev => !stateOfTheWorld.Events.Any(msg => msg.EventId.Id == ev.EventId))
+                                                        .ToList();
+
+                    foreach (var @event in replayEvents)
+                    {
+                        update(@event);
+                    }
+
+                }
+
+            });
+
+            _isCaughtUpProcess = false;
+
+            _caughtingUpCache.Clear();
+        }
+
         protected override Task RunInternal()
         {
 
             _observeCacheState = _state
                 .Where(state => state == DynamicCacheState.Reconnected)
-                .Subscribe((state) =>
+                .Subscribe(_ =>
                  {
-                     _isCaughtingUp = true;
-
-                     _sourceCache.Edit( (updater) =>
-                     {
-                         updater.Clear();
-
-                         var stateOfTheWorld = GetStateOfTheWorld();
-
-                         var update = new Action<IEvent<TKey, TAggregate>>((@event) =>
-                         {
-
-                             var aggregate = updater.Lookup(@event.EventStreamId);
-
-                             if (!aggregate.HasValue)
-                             {
-                                 var @new = new TAggregate
-                                 {
-                                     Id = @event.EventStreamId
-                                 };
-
-                                 @new.Apply(@event);
-
-                                 updater.AddOrUpdate(@new);
-                             }
-                             else
-                             {
-                                 aggregate.Value.Apply(@event);
-
-                                 updater.AddOrUpdate(aggregate.Value);
-                             }
-
-                         });
-
-                         foreach(var eventMessage in stateOfTheWorld.Events)
-                         {
-                             var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventMessage);
-
-                             update(@event);
-                         }
-
-                         lock (_caughtingUpLock)
-                         {
-
-                             var replayEvents = _caughtingUpCache.CaughtUpEvents
-                                                                 .Where(ev => !stateOfTheWorld.Events.Any(msg => msg.EventId.Id == ev.EventId))
-                                                                 .ToList();
-
-                             foreach (var @event in replayEvents)
-                             {
-                                 update(@event);
-                             }
-
-                         }
-
-                     });
-
-                     _isCaughtingUp = false;
-
-                     _caughtingUpCache.Clear();
+                     Task.Run(CaughtUpToStateOfTheWorld);
                  });
 
             _workProc = Task.Run(HandleWork, _cancel.Token).ConfigureAwait(false);
+
             _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token).ConfigureAwait(false);
 
             return Task.CompletedTask;

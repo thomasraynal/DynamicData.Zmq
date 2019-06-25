@@ -8,6 +8,7 @@ namespace ZeroMQPlayground.DynamicData
     [TestFixture]
     public class TestDynamicData
     {
+
         [Test]
         public void ShouldSerializeEventSubject()
         {

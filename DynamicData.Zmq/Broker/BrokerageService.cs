@@ -31,13 +31,11 @@ namespace ZeroMQPlayground.DynamicData.Broker
 
         public BrokerageService(IBrokerageServiceConfiguration configuration, IEventCache cache,ISerializer serializer)
         {
-
             _cache = cache;
             _serializer = serializer;
             _configuration = configuration;
 
             _cancel = new CancellationTokenSource();
-
         }
 
         protected override Task RunInternal()
@@ -114,6 +112,8 @@ namespace ZeroMQPlayground.DynamicData.Broker
             {
                 stateUpdate.SubscribeToAnyTopic();
                 stateUpdate.Bind(_configuration.ToPublisherEndpoint);
+
+                stateUpdate.Options.ReceiveHighWatermark = _configuration.ZmqHighWatermark;
 
                 using (var stateUpdatePublish = new PublisherSocket())
                 {

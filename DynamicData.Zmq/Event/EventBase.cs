@@ -9,6 +9,7 @@ namespace ZeroMQPlayground.DynamicData.Event
         protected EventBase()
         {
             EventType = this.GetType();
+            Version = -1;
         }
 
         protected EventBase(TKey aggregateId) : this()
@@ -36,6 +37,11 @@ namespace ZeroMQPlayground.DynamicData.Event
         public bool CanApply(Type type)
         {
             return type == typeof(TAggregate);
+        }
+
+        public override string ToString()
+        {
+            return $"{EventId}";
         }
     }
 }

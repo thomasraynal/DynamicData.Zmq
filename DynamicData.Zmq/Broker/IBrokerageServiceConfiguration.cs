@@ -6,5 +6,6 @@
         string StateOftheWorldEndpoint { get; set; }
         string ToPublisherEndpoint { get; set; }
         string ToSubscribersEndpoint { get; set; }
+        int ZmqHighWatermark { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ZeroMQPlayground.DynamicData.Broker;
@@ -16,19 +17,20 @@ using ZeroMQPlayground.DynamicData.Producer;
 
 namespace ZeroMQPlayground.DynamicData
 {
+    //given the huge number of tasks running for each E2E test, a substantial timer is necessary for the system to change state.
     [TestFixture]
     public class TestDynamicDataE2E
     {
-        private string ToPublishersEndpoint = "tcp://localhost:8080";
-        private string ToSubscribersEndpoint = "tcp://localhost:8181";
-        private string HeartbeatEndpoint = "tcp://localhost:8282";
-        private string StateOfTheWorldEndpoint = "tcp://localhost:8383";
+        private readonly string ToPublishersEndpoint = "tcp://localhost:8080";
+        private readonly string ToSubscribersEndpoint = "tcp://localhost:8181";
+        private readonly string HeartbeatEndpoint = "tcp://localhost:8282";
+        private readonly string StateOfTheWorldEndpoint = "tcp://localhost:8383";
 
-        //[TearDown]
-        //public void TearDown()
-        //{
-        //    NetMQConfig.Cleanup(false);
-        //}
+        [TearDown]
+        public void TearDown()
+        {
+            NetMQConfig.Cleanup(false);
+        }
 
         [OneTimeSetUp]
         public void OneTimeSetUp()
@@ -47,10 +49,101 @@ namespace ZeroMQPlayground.DynamicData
                 settings.Converters.Add(new AbstractConverter<IEventId, EventId>());
                 settings.Converters.Add(new AbstractConverter<IStateReply, StateReply>());
                 settings.Converters.Add(new AbstractConverter<IStateRequest, StateRequest>());
-         
+
                 return settings;
             };
         }
+
+        [Test]
+        public async Task ShouldConnectAndDisconnectFromBrokerGracefully()
+        {
+            var eventIdProvider = new InMemoryEventIdProvider();
+            var serializer = new JsonNetSerializer();
+            var eventSerializer = new EventSerializer(serializer);
+
+            var eventCache = new InMemoryEventCache(eventIdProvider, eventSerializer);
+
+            var brokerConfiguration = new BrokerageServiceConfiguration()
+            {
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                ToSubscribersEndpoint = ToSubscribersEndpoint,
+                ToPublisherEndpoint = ToPublishersEndpoint
+            };
+
+            var router = new BrokerageService(brokerConfiguration, eventCache, serializer);
+
+            var marketConfiguration = new ProducerConfiguration()
+            {
+                RouterEndpoint = ToPublishersEndpoint,
+                HearbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
+
+            var market = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(750));
+
+            await market.Run();
+
+            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+            {
+                Subject = string.Empty,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
+
+            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
+
+            var cacheStates = new List<DynamicCacheState>();
+
+            var stateObservable = cache.OnStateChanged()
+                                       .Subscribe(state =>
+                                       {
+                                           cacheStates.Add(state);
+                                       });
+
+            await cache.Run();
+
+            await Task.Delay(2000);
+
+            Assert.AreEqual(DynamicCacheState.NotConnected, cache.CacheState);
+            Assert.AreEqual(ProducerState.NotConnected, market.ProducerState);
+
+            await router.Run();
+
+            await Task.Delay(2000);
+
+            Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
+            Assert.AreEqual(ProducerState.Connected, market.ProducerState);
+
+            await router.Destroy();
+
+            await Task.Delay(2000);
+
+            Assert.AreEqual(DynamicCacheState.Disconnected, cache.CacheState);
+            Assert.AreEqual(ProducerState.Disconnected, market.ProducerState);
+
+            router = new BrokerageService(brokerConfiguration, eventCache, serializer);
+            await router.Run();
+
+            await Task.Delay(2000);
+
+            Assert.AreEqual(5, cacheStates.Count);
+            Assert.AreEqual(DynamicCacheState.NotConnected, cacheStates.ElementAt(0));
+            Assert.AreEqual(DynamicCacheState.Connected, cacheStates.ElementAt(1));
+            Assert.AreEqual(DynamicCacheState.Disconnected, cacheStates.ElementAt(2));
+            Assert.AreEqual(DynamicCacheState.Reconnected, cacheStates.ElementAt(3));
+            Assert.AreEqual(DynamicCacheState.Connected, cacheStates.ElementAt(4));
+
+            Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
+            Assert.AreEqual(ProducerState.Connected, market.ProducerState);
+
+
+            await Task.WhenAll(new[] { router.Destroy(), market.Destroy(), cache.Destroy() });
+
+
+        }
+
 
         [Test]
         public async Task ShouldHandleDisconnectAndCacheRebuild()
@@ -74,13 +167,17 @@ namespace ZeroMQPlayground.DynamicData
             var marketConfiguration = new ProducerConfiguration()
             {
                 RouterEndpoint = ToPublishersEndpoint,
-                HearbeatEndpoint = HeartbeatEndpoint
+                HearbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var market1 = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(100));
-            var market2 = new Market("Harmony", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(100));
+            var market1 = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(750));
+            var market2 = new Market("Harmony", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(750));
 
             await router.Run();
+
+            await Task.Delay(1000);
 
             await market1.Run();
             await market2.Run();
@@ -88,36 +185,34 @@ namespace ZeroMQPlayground.DynamicData
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
                 Subject = string.Empty,
-                HeartbeatDelay = TimeSpan.FromSeconds(2),
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
             var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
             var cacheProof = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
 
-            await cacheProof.Run();
             await cache.Run();
+            await cacheProof.Run();
 
-            Assert.AreEqual(DynamicCacheState.None, cache.CacheState);
-            Assert.AreEqual(DynamicCacheState.None, cacheProof.CacheState);
+            Assert.AreEqual(DynamicCacheState.NotConnected, cache.CacheState);
+            Assert.AreEqual(DynamicCacheState.NotConnected, cacheProof.CacheState);
 
-            await Task.Delay(4000);
+            await Task.Delay(2000);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.Connected, cacheProof.CacheState);
 
-            await Task.Delay(3000);
+            await Task.Delay(2000);
 
-            Assert.AreEqual(cache.GetItems()
-                                 .SelectMany(item => item.AppliedEvents)
-                                 .Count(), 
-                       cacheProof.GetItems()
-                                 .SelectMany(item => item.AppliedEvents)
-                                 .Count());
+            var cacheEvents = cache.GetItems().SelectMany(item => item.AppliedEvents).ToList();
+            var cacheProofEvents = cacheProof.GetItems().SelectMany(item => item.AppliedEvents).ToList();
+
+            Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
 
             await router.Destroy();
 
-            await Task.Delay(cacheConfiguration.HeartbeatDelay);
+            await Task.Delay(2000);
 
             Assert.AreEqual(DynamicCacheState.Disconnected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.Disconnected, cacheProof.CacheState);
@@ -126,7 +221,7 @@ namespace ZeroMQPlayground.DynamicData
 
             await router.Run();
 
-            await Task.Delay(TimeSpan.FromSeconds(3));
+            await Task.Delay(2000);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.Connected, cacheProof.CacheState);
@@ -150,15 +245,14 @@ namespace ZeroMQPlayground.DynamicData
             }
 
             var brokerCacheEvents = (await eventCache.GetStreamBySubject(cacheConfiguration.Subject)).ToList();
-            var cacheEvents = cacheCCyPair.SelectMany(item => item.AppliedEvents).ToList();
-            var cacheProofEvents = cacheProofCcyPair.SelectMany(item => item.AppliedEvents).ToList();
-      
+            cacheEvents = cacheCCyPair.SelectMany(item => item.AppliedEvents).ToList();
+            cacheProofEvents = cacheProofCcyPair.SelectMany(item => item.AppliedEvents).ToList();
 
             Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
             Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
             Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
 
-            await Task.WhenAll(new[] { market1.Destroy(), market2.Destroy(), cache.Destroy()});
+            await Task.WhenAll(new[] {market1.Destroy(), market2.Destroy(), cache.Destroy(), cacheProof.Destroy() });
 
         }
 
@@ -169,8 +263,8 @@ namespace ZeroMQPlayground.DynamicData
             var eventIdProvider = new InMemoryEventIdProvider();
             var serializer = new JsonNetSerializer();
             var eventSerializer = new EventSerializer(serializer);
-          
-            var eventCache = new InMemoryEventCache(eventIdProvider,eventSerializer);
+
+            var eventCache = new InMemoryEventCache(eventIdProvider, eventSerializer);
 
             var brokerConfiguration = new BrokerageServiceConfiguration()
             {
@@ -192,9 +286,9 @@ namespace ZeroMQPlayground.DynamicData
             var market2 = new Market("Harmony", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(750));
 
             await router.Run();
+
             await market1.Run();
             await market2.Run();
-
 
             var cacheConfigurationEuroDol = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
@@ -213,9 +307,12 @@ namespace ZeroMQPlayground.DynamicData
             await cacheEuroDolFxConnect.Run();
 
             //wait for a substential event stream
-            await Task.Delay(5000);
+            await Task.Delay(7000);
 
-            // Assert.Greater(router.Cache.Count(), 1);
+            var routerEventCacheItems = await eventCache.GetStreamBySubject(string.Empty);
+
+            Assert.Greater(routerEventCacheItems.Count(), 0);
+
 
             var ccyPairsCacheEuroDol = cacheEuroDol.GetItems()
                                                    .SelectMany(item => item.AppliedEvents)
@@ -261,7 +358,9 @@ namespace ZeroMQPlayground.DynamicData
             var marketConfiguration = new ProducerConfiguration()
             {
                 RouterEndpoint = ToPublishersEndpoint,
-                HearbeatEndpoint = HeartbeatEndpoint
+                HearbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
             var market1 = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(750));
@@ -274,9 +373,15 @@ namespace ZeroMQPlayground.DynamicData
             //create an event cache
             await Task.Delay(2000);
 
-            //Assert.Greater(router.Cache.Count(), 0);
+            var routerEventCacheItems = await eventCache.GetStreamBySubject(string.Empty);
 
-            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint);
+            Assert.Greater(routerEventCacheItems.Count(), 0);
+
+            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+            {
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
 
             var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
 
@@ -284,30 +389,115 @@ namespace ZeroMQPlayground.DynamicData
 
             var cleanup = cache.OnItemChanged()
                                .Connect()
-                               .Subscribe(_ =>
+                               .Subscribe(changes =>
                                {
-                                   counter++;
+                                   counter += changes.Count;
                                });
 
             await cache.Run();
 
-            await Task.Delay(2000);
+            await Task.Delay(3000);
 
-            // Assert.AreEqual(router.Cache.Count(), counter);
-            Assert.AreEqual(cache.GetItems().SelectMany(item => item.AppliedEvents).Count(), counter);
+            var eventCacheItems = cache.GetItems().SelectMany(item => item.AppliedEvents).ToList();
 
-            //fxconnext & harmony
-            Assert.AreEqual(2, cache.GetItems()
+            Assert.AreEqual(eventCacheItems.Count(), counter);
+
+            var markets = cache.GetItems()
                                     .SelectMany(item => item.AppliedEvents)
                                     .Cast<ChangeCcyPairPrice>()
                                     .Select(ev => ev.Market)
-                                    .Distinct()
-                                    .Count());
+                                    .Distinct();
 
+            //fxconnext & harmony
+            Assert.AreEqual(2, markets.Count());
 
             cleanup.Dispose();
 
             await Task.WhenAll(new[] { router.Destroy(), market1.Destroy(), market2.Destroy(), cache.Destroy() });
+
+        }
+
+        [Test]
+        public async Task ShouldRetrievedEventsSequencialy()
+        {
+            var eventIdProvider = new InMemoryEventIdProvider();
+            var serializer = new JsonNetSerializer();
+            var eventSerializer = new EventSerializer(serializer);
+
+            var eventCache = new InMemoryEventCache(eventIdProvider, eventSerializer);
+
+            var brokerConfiguration = new BrokerageServiceConfiguration()
+            {
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                ToSubscribersEndpoint = ToSubscribersEndpoint,
+                ToPublisherEndpoint = ToPublishersEndpoint
+            };
+
+            var router = new BrokerageService(brokerConfiguration, eventCache, serializer);
+
+            var marketConfiguration = new ProducerConfiguration()
+            {
+                RouterEndpoint = ToPublishersEndpoint,
+                HearbeatEndpoint = HeartbeatEndpoint
+            };
+
+            var market1 = new Market("FxConnect", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(100));
+            var market2 = new Market("Harmony", marketConfiguration, eventSerializer, TimeSpan.FromMilliseconds(100));
+
+            await router.Run();
+            await market1.Run();
+            await market2.Run();
+
+            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+            {
+                Subject = string.Empty,
+                HeartbeatDelay = TimeSpan.FromSeconds(10),
+                HeartbeatTimeout = TimeSpan.FromSeconds(2)
+            };
+
+            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
+            var cacheProof = new DynamicCache<string, CurrencyPair>(cacheConfiguration, eventSerializer);
+
+            await cache.Run();
+            await cacheProof.Run();
+
+            await Task.Delay(5000);
+
+            var cacheEvents = cache.GetItems()
+                                   .SelectMany(item => item.AppliedEvents)
+                                   .Cast<IEvent<string, CurrencyPair>>()
+                                   .GroupBy(ev => ev.EventStreamId)
+                                   .ToList();
+
+            foreach (var grp in cacheEvents)
+            {
+                var index = 0;
+
+                foreach (var ev in grp)
+                {
+                    Assert.AreEqual(index++, ev.Version);
+                }
+            }
+
+
+            var cacheProofEvents = cache.GetItems()
+                       .SelectMany(item => item.AppliedEvents)
+                       .Cast<IEvent<string, CurrencyPair>>()
+                       .GroupBy(ev => ev.EventStreamId)
+                       .ToList();
+
+            foreach (var grp in cacheProofEvents)
+            {
+                var index = 0;
+
+                foreach (var ev in grp)
+                {
+                    Assert.AreEqual(index++, ev.Version);
+                }
+            }
+
+            await Task.WhenAll(new[] { router.Destroy(), market1.Destroy(), market2.Destroy(), cache.Destroy(), cacheProof.Destroy() });
 
         }
 

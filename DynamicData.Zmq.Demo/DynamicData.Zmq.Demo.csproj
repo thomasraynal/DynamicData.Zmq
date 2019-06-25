@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DynamicData.Zmq\DynamicData.Zmq\DynamicData.Zmq.csproj" />
+    <ProjectReference Include="..\DynamicData.Zmq\DynamicData.Zmq.csproj" />
   </ItemGroup>
 
 </Project>
