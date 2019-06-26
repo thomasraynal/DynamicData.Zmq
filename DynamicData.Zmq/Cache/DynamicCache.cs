@@ -157,8 +157,6 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
         private void HandleWork()
         {
-  
-
             using (_cacheUpdateSocket = new SubscriberSocket())
             {
                 _cacheUpdateSocket.Options.ReceiveHighWatermark = _configuration.ZmqHighWatermark;
@@ -173,7 +171,6 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
                 while (!_cancel.IsCancellationRequested)
                 {
-
                     NetMQMessage message = null;
 
                     var hasMessage = _cacheUpdateSocket.TryReceiveMultipartMessage(_configuration.IsStaleTimeout, ref message);

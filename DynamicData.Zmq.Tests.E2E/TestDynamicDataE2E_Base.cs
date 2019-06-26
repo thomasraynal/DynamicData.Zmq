@@ -99,7 +99,13 @@ namespace ZeroMQPlayground.DynamicData
             return router;
         }
 
-
+        public async Task WaitForCachesToCaughtUp(params DynamicCache<string, CurrencyPair>[] caches)
+        {
+            while(!caches.All(c=> !c.IsCaughtingUp))
+            {
+                await Task.Delay(1000);
+            }
+        }
 
 
     }

@@ -8,7 +8,7 @@ using ZeroMQPlayground.DynamicData.Demo;
 using ZeroMQPlayground.DynamicData.Event;
 using ZeroMQPlayground.DynamicData.Producer;
 
-namespace ZeroMQPlayground.DynamicData
+namespace ZeroMQPlayground.DynamicData.E2E
 {
     [TestFixture]
     public class TestDynamicDataE2E_SubscribeToSubject : TestDynamicDataE2E_Base
@@ -57,15 +57,12 @@ namespace ZeroMQPlayground.DynamicData
             await market1.Run();
             await market2.Run();
 
-            await Task.Delay(3000);
+            await Task.Delay(2000);
 
             await cacheEuroDol.Run();
             await cacheEuroDolFxConnect.Run();
 
-            while (cacheEuroDol.IsCaughtingUp || cacheEuroDolFxConnect.IsCaughtingUp)
-            {
-                await Task.Delay(200);
-            }
+            await WaitForCachesToCaughtUp(cacheEuroDol, cacheEuroDolFxConnect);
 
             var routerEventCacheItems = (await _eventCache.GetStreamBySubject(string.Empty)).ToList();
 

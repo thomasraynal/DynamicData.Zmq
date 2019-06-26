@@ -8,7 +8,7 @@ using ZeroMQPlayground.DynamicData.Demo;
 using ZeroMQPlayground.DynamicData.Event;
 using ZeroMQPlayground.DynamicData.Producer;
 
-namespace ZeroMQPlayground.DynamicData
+namespace ZeroMQPlayground.DynamicData.E2E
 {
     [TestFixture]
     public class TestDynamicDataE2E_RetrieveEventsSequentially : TestDynamicDataE2E_Base
@@ -55,7 +55,9 @@ namespace ZeroMQPlayground.DynamicData
             await cache.Run();
             await cacheProof.Run();
 
-            await Task.Delay(5000);
+            await Task.Delay(1000);
+
+            await WaitForCachesToCaughtUp(cache, cacheProof);
 
             var cacheEvents = cache.GetItems()
                                    .SelectMany(item => item.AppliedEvents)

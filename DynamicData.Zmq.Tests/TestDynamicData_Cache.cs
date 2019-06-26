@@ -19,7 +19,7 @@ using ZeroMQPlayground.DynamicData.Producer;
 namespace ZeroMQPlayground.DynamicData
 {
     [TestFixture]
-    public class TestDynamicData
+    public class TestDynamicData_Cache
     {
 
         private readonly string ToPublishersEndpoint = "tcp://localhost:8080";
@@ -350,6 +350,7 @@ namespace ZeroMQPlayground.DynamicData
             var eventIdProvider = new InMemoryEventIdProvider();
             var eventCache = new InMemoryEventCache(eventIdProvider, _eventSerializer);
             var cancel = new CancellationTokenSource();
+
             SetupFakeBroker(cancel.Token, eventCache);
 
             await Task.Delay(2000);

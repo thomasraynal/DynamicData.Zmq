@@ -3,13 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq", "DynamicData.Zmq\DynamicData.Zmq.csproj", "{17EE6A17-57A5-40C2-9F7C-4D04E65D1709}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq", "DynamicData.Zmq\DynamicData.Zmq.csproj", "{17EE6A17-57A5-40C2-9F7C-4D04E65D1709}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Tests", "DynamicData.Zmq.Tests\DynamicData.Zmq.Tests.csproj", "{4EE88E00-2E5E-49C0-8FC9-7B9B2FE69D12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Tests", "DynamicData.Zmq.Tests\DynamicData.Zmq.Tests.csproj", "{4EE88E00-2E5E-49C0-8FC9-7B9B2FE69D12}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Mvc", "DynamicData.Zmq.Mvc\DynamicData.Zmq.Mvc.csproj", "{C2916A87-576A-4448-B661-C08BFA212709}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Mvc", "DynamicData.Zmq.Mvc\DynamicData.Zmq.Mvc.csproj", "{C2916A87-576A-4448-B661-C08BFA212709}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Demo", "DynamicData.Zmq.Demo\DynamicData.Zmq.Demo.csproj", "{7371BE84-F83B-49CD-90A4-3E631D08BF6C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo", "DynamicData.Zmq.Demo\DynamicData.Zmq.Demo.csproj", "{7371BE84-F83B-49CD-90A4-3E631D08BF6C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Tests.E2E", "DynamicData.Zmq.Tests.E2E\DynamicData.Zmq.Tests.E2E.csproj", "{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{7371BE84-F83B-49CD-90A4-3E631D08BF6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7371BE84-F83B-49CD-90A4-3E631D08BF6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7371BE84-F83B-49CD-90A4-3E631D08BF6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

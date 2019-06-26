@@ -7,7 +7,7 @@ using ZeroMQPlayground.DynamicData.Broker;
 using ZeroMQPlayground.DynamicData.Cache;
 using ZeroMQPlayground.DynamicData.Producer;
 
-namespace ZeroMQPlayground.DynamicData
+namespace ZeroMQPlayground.DynamicData.E2E
 {
     [TestFixture]
     public class TestDynamicDataE2E_ConnectAndDisconnectFromBroker: TestDynamicDataE2E_Base
@@ -29,14 +29,14 @@ namespace ZeroMQPlayground.DynamicData
             {
                 RouterEndpoint = ToPublishersEndpoint,
                 HearbeatEndpoint = HeartbeatEndpoint,
-                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatDelay = TimeSpan.FromMilliseconds(500),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
                 Subject = string.Empty,
-                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatDelay = TimeSpan.FromMilliseconds(500),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
@@ -52,17 +52,18 @@ namespace ZeroMQPlayground.DynamicData
                                            cacheStates.Add(state);
                                        });
 
-            await router.Run();
-
-            await Task.Delay(1000);
+            
+            await market.Run();
+            await cache.Run();
 
             Assert.AreEqual(ProducerState.NotConnected, market.ProducerState);
             Assert.AreEqual(DynamicCacheState.NotConnected, cache.CacheState);
 
-            await market.Run();
-            await cache.Run();
+            await router.Run();
 
-            await Task.Delay(2000);
+            await Task.Delay(1000);
+
+            await WaitForCachesToCaughtUp(cache);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(ProducerState.Connected, market.ProducerState);
@@ -89,6 +90,8 @@ namespace ZeroMQPlayground.DynamicData
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(ProducerState.Connected, market.ProducerState);
+
+            stateObservable.Dispose();
 
 
         }

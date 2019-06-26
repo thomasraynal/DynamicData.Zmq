@@ -8,10 +8,10 @@ using ZeroMQPlayground.DynamicData.Demo;
 using ZeroMQPlayground.DynamicData.Event;
 using ZeroMQPlayground.DynamicData.Producer;
 
-namespace ZeroMQPlayground.DynamicData
+namespace ZeroMQPlayground.DynamicData.E2E
 {
     [TestFixture]
-    public class TestDynamicDataPerf_Maximum : TestDynamicDataE2E_Base
+    public class TestDynamicDataPerf_100ms: TestDynamicDataE2E_Base
     {
 
         [Test]
@@ -36,8 +36,8 @@ namespace ZeroMQPlayground.DynamicData
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(30));
-            var market2 = GetMarket("Harmony", marketConfiguration, TimeSpan.FromMilliseconds(30));
+            var market1 = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(100));
+            var market2 = GetMarket("Harmony", marketConfiguration, TimeSpan.FromMilliseconds(100));
 
             await router.Run();
 
@@ -57,12 +57,9 @@ namespace ZeroMQPlayground.DynamicData
 
             await cache.Run();
 
-            await Task.Delay(5000);
+            await Task.Delay(2000);
 
-            while (cache.IsCaughtingUp)
-            {
-                await Task.Delay(1000);
-            }
+            await WaitForCachesToCaughtUp(cache);
 
             var cacheEvents = cache.GetItems()
                        .SelectMany(item => item.AppliedEvents)

@@ -6,7 +6,7 @@ using ZeroMQPlayground.DynamicData.Broker;
 using ZeroMQPlayground.DynamicData.Cache;
 using ZeroMQPlayground.DynamicData.Producer;
 
-namespace ZeroMQPlayground.DynamicData
+namespace ZeroMQPlayground.DynamicData.E2E
 {
     [TestFixture]
     public class TestDynamicDataE2E_HandleDisconnectAndRebuildCache : TestDynamicDataE2E_Base
@@ -48,21 +48,18 @@ namespace ZeroMQPlayground.DynamicData
 
             await router.Run();
 
-            await Task.Delay(1000);
-
             await market1.Run();
+
             await cache.Run();
             await cacheProof.Run();
 
             Assert.AreEqual(DynamicCacheState.NotConnected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.NotConnected, cacheProof.CacheState);
 
-            await Task.Delay(3000);
+            await WaitForCachesToCaughtUp(cache, cacheProof);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.Connected, cacheProof.CacheState);
-
-            await Task.Delay(2000);
 
             var cacheEvents = cache.GetItems().SelectMany(item => item.AppliedEvents).ToList();
             var cacheProofEvents = cacheProof.GetItems().SelectMany(item => item.AppliedEvents).ToList();
@@ -80,7 +77,9 @@ namespace ZeroMQPlayground.DynamicData
 
             await router.Run();
 
-            await Task.Delay(4000);
+            await Task.Delay(1000);
+
+            await WaitForCachesToCaughtUp(cache, cacheProof);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.Connected, cacheProof.CacheState);
