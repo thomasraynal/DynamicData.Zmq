@@ -81,7 +81,6 @@ namespace ZeroMQPlayground.DynamicData.Broker
 
         private async Task HandleStateOfTheWorldRequest()
         {
-            //todo: no global socket
             using (_stateRequestSocket = new RouterSocket())
             {
                 _stateRequestSocket.Bind(_configuration.StateOftheWorldEndpoint);

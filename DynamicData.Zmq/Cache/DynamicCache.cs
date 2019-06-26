@@ -87,6 +87,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
                 var hasResponse = dealer.TryReceiveFrameBytes(_configuration.StateCatchupTimeout, out var responseBytes);
 
+                //retry policy
                 if (!hasResponse) throw new Exception("unable to reach broker");
 
                 return _eventSerializer.Serializer.Deserialize<StateReply>(responseBytes);
@@ -153,6 +154,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
                 _isCaughtUpProcess = true;
 
+                //todo: remove spaghetti code
                 Task.Run(CaughtUpToStateOfTheWorld);
 
                 while (!_cancel.IsCancellationRequested)
@@ -282,8 +284,6 @@ namespace ZeroMQPlayground.DynamicData.Cache
                 {
                     update(@event);
                 }
-
-               
 
             });
 

@@ -146,13 +146,16 @@ namespace ZeroMQPlayground.DynamicData
             var topic = "EUR/USD";
             var cancel = new CancellationTokenSource();
 
+            var stateOfTheWorldEventCount = 10000;
+            var ongoingEventCount = 10;
+
             var raisedEventDuringCacheBuilding = new List<IEventId>();
 
             SetupFakeBroker(cancel.Token, eventCache);
 
             await Task.Delay(500);
 
-            for (var i = 0; i < 10000; i++)
+            for (var i = 0; i < stateOfTheWorldEventCount; i++)
             {
                 var next = Next(topic);
                 var message = _eventSerializer.ToProducerMessage(next);
@@ -174,8 +177,10 @@ namespace ZeroMQPlayground.DynamicData
                 {
                     stateUpdatePublish.Bind(ToSubscribersEndpoint);
 
-                    for (var i = 0; i < 10000; i++)
+                    for (var i = 0; i < ongoingEventCount; i++)
                     {
+                        if (cancel.IsCancellationRequested) return;
+
                         var next = Next(topic);
                         var message = _eventSerializer.ToProducerMessage(next);
                         var payload = _serializer.Serialize(message);
@@ -186,17 +191,18 @@ namespace ZeroMQPlayground.DynamicData
                         stateUpdatePublish.SendMoreFrame(next.Subject)
                                           .SendMoreFrame(_serializer.Serialize(eventId))
                                           .SendFrame(payload);
+
+
                     }
                 }
 
             });
 
+            await cache.Run();
 
             task.Start();
 
-            await cache.Run();
-
-            await Task.Delay(3000);
+            await Task.Delay(2000);
 
             await DestroyFakeBroker(cancel);
 
@@ -207,14 +213,14 @@ namespace ZeroMQPlayground.DynamicData
 
             var euroDol = ccyPairs.First();
 
-           // Assert.AreEqual(50, euroDol.AppliedEvents.Count());
+            Assert.AreEqual(stateOfTheWorldEventCount + ongoingEventCount, euroDol.AppliedEvents.Count());
 
 
-           
+
         }
 
         [Test]
-        public async Task ShouldSwitchToStalledState()
+        public async Task ShouldSwitchToStaledState()
         {
 
         }
@@ -272,7 +278,8 @@ namespace ZeroMQPlayground.DynamicData
             }
 
             var lastPriceEvent = Next(topic);
-            await eventCache.AppendToStream(lastPriceEvent.Subject, _serializer.Serialize(_eventSerializer.ToProducerMessage(lastPriceEvent)));
+            var lastMessage = _eventSerializer.ToProducerMessage(lastPriceEvent);
+            await eventCache.AppendToStream(lastPriceEvent.Subject, _serializer.Serialize(lastMessage));
 
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
@@ -285,7 +292,7 @@ namespace ZeroMQPlayground.DynamicData
 
             await cache.Run();
 
-            await Task.Delay(1000);
+            await Task.Delay(3000);
 
             var ccyPairs = cache.GetItems()
                                 .ToList();

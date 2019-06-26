@@ -45,6 +45,7 @@ namespace ZeroMQPlayground.DynamicData.Event
 
         public IProducerMessage ToProducerMessage<TKey, TAggregate>(IEvent<TKey, TAggregate> @event) where TAggregate : IAggregate<TKey>
         {
+            //todo : mutate explicitly
             @event.Subject = GetSubject(@event);
 
             var message = new ProducerMessage()
