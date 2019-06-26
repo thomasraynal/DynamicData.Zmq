@@ -8,7 +8,6 @@ namespace ZeroMQPlayground.DynamicData.Cache
     {
         NotConnected,
         Disconnected,
-        Staled,
         Connected,
         Reconnected
     }

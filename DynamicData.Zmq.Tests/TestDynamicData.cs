@@ -14,6 +14,7 @@ using ZeroMQPlayground.DynamicData.Demo;
 using ZeroMQPlayground.DynamicData.Dto;
 using ZeroMQPlayground.DynamicData.Event;
 using ZeroMQPlayground.DynamicData.EventCache;
+using ZeroMQPlayground.DynamicData.Producer;
 
 namespace ZeroMQPlayground.DynamicData
 {
@@ -82,60 +83,106 @@ namespace ZeroMQPlayground.DynamicData
             await Task.Delay(1500);
         }
 
-        private void SetupFakeBroker(CancellationToken cancel, IEventCache eventCache)
+        private void SetupFakeBroker(
+            CancellationToken cancel, 
+            IEventCache eventCache, 
+            bool useHeartbeat = true,
+            bool useEventLoop = true,
+            bool useStateOfTheWorld = true)
         {
-            //heartbeat
-            Task.Run(() =>
-            {
-                using (var heartbeatSocket = new ResponseSocket(HeartbeatEndpoint))
-                {
-                    while (!cancel.IsCancellationRequested)
-                    {
-                        var hasResponse = heartbeatSocket.TryReceiveFrameBytes(TimeSpan.FromSeconds(1), out var messageBytes);
 
-                        if (hasResponse)
+            if (useHeartbeat)
+            {
+                //heartbeat
+                Task.Run(() =>
+                {
+                    using (var heartbeatSocket = new ResponseSocket(HeartbeatEndpoint))
+                    {
+                        while (!cancel.IsCancellationRequested)
                         {
-                            heartbeatSocket.SendFrame(_serializer.Serialize(Heartbeat.Response));
+                            var hasResponse = heartbeatSocket.TryReceiveFrameBytes(TimeSpan.FromSeconds(1), out var messageBytes);
+
+                            if (hasResponse)
+                            {
+                                heartbeatSocket.SendFrame(_serializer.Serialize(Heartbeat.Response));
+                            }
                         }
                     }
-                }
-            }, cancel);
+                }, cancel);
 
+            }
 
-            //stateOfTheWorld
-            Task.Run(async () =>
+            if (useEventLoop)
             {
-                using (var stateRequestSocket = new RouterSocket())
+                //event loop
+                Task.Run(async () =>
+            {
+                using (var stateUpdate = new SubscriberSocket())
                 {
-                    stateRequestSocket.Bind(StateOfTheWorldEndpoint);
+                    stateUpdate.SubscribeToAnyTopic();
+                    stateUpdate.Bind(ToPublishersEndpoint);
 
                     while (!cancel.IsCancellationRequested)
                     {
                         NetMQMessage message = null;
 
-                        var hasResponse = stateRequestSocket.TryReceiveMultipartMessage(TimeSpan.FromSeconds(1), ref message);
+                        var hasResponse = stateUpdate.TryReceiveMultipartMessage(TimeSpan.FromSeconds(1), ref message);
 
                         if (hasResponse)
                         {
-                            var sender = message[0].Buffer;
-                            var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
 
-                            var stream = await eventCache.GetStreamBySubject(request.Subject);
 
-                            var response = new StateReply()
-                            {
-                                Subject = request.Subject,
-                                Events = stream.ToList()
-                            };
+                            var subject = message[0].ConvertToString();
+                            var payload = message[1];
 
-                            stateRequestSocket.SendMoreFrame(sender)
-                                               .SendFrame(_serializer.Serialize(response));
+                            await eventCache.AppendToStream(subject, payload.Buffer);
+
                         }
+
                     }
                 }
-
             }, cancel);
 
+            }
+
+            if (useStateOfTheWorld)
+            {
+
+                //stateOfTheWorld
+                Task.Run(async () =>
+                {
+                    using (var stateRequestSocket = new RouterSocket())
+                    {
+                        stateRequestSocket.Bind(StateOfTheWorldEndpoint);
+
+                        while (!cancel.IsCancellationRequested)
+                        {
+                            NetMQMessage message = null;
+
+                            var hasResponse = stateRequestSocket.TryReceiveMultipartMessage(TimeSpan.FromSeconds(1), ref message);
+
+                            if (hasResponse)
+                            {
+                                var sender = message[0].Buffer;
+                                var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
+
+                                var stream = await eventCache.GetStreamBySubject(request.Subject);
+
+                                var response = new StateReply()
+                                {
+                                    Subject = request.Subject,
+                                    Events = stream.ToList()
+                                };
+
+                                stateRequestSocket.SendMoreFrame(sender)
+                                                   .SendFrame(_serializer.Serialize(response));
+                            }
+                        }
+                    }
+
+                }, cancel);
+
+            }
         }
 
         [Test]
@@ -222,6 +269,118 @@ namespace ZeroMQPlayground.DynamicData
         [Test]
         public async Task ShouldSwitchToStaledState()
         {
+            using (var publisherSocket = new PublisherSocket())
+            {
+                publisherSocket.Bind(ToSubscribersEndpoint);
+
+                var eventIdProvider = new InMemoryEventIdProvider();
+                var eventCache = new InMemoryEventCache(eventIdProvider, _eventSerializer);
+
+                var cancel = new CancellationTokenSource();
+
+                //we handle event loop
+                SetupFakeBroker(cancel.Token, eventCache, useEventLoop: false);
+
+                await Task.Delay(2000);
+
+                var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+                {
+                    Subject = string.Empty,
+                    HeartbeatDelay = TimeSpan.FromSeconds(5),
+                    HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                    IsStaleTimeout = TimeSpan.FromSeconds(2)
+                };
+
+                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+
+                await cache.Run();
+
+                await Task.Delay(1000);
+
+                Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
+                Assert.AreEqual(true, cache.IsStaled);
+
+
+
+                var @event = new ChangeCcyPairPrice("TEST", "TEST-Market", 0.0, 0.0, 0.0, 0.0);
+                var message = _eventSerializer.ToProducerMessage(@event);
+
+                var eventId = new EventId()
+                {
+                    EventStream = "TEST",
+                    Subject = "TEST",
+                    Timestamp = DateTime.Now.Ticks,
+                    Version = 0
+                };
+
+                publisherSocket.SendMoreFrame(message.Subject)
+                               .SendMoreFrame(_serializer.Serialize(eventId))
+                               .SendFrame(_serializer.Serialize(message));
+
+                await Task.Delay(200);
+
+                Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
+                Assert.AreEqual(false, cache.IsStaled);
+
+
+                await Task.Delay(2000);
+
+                Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
+                Assert.AreEqual(true, cache.IsStaled);
+
+                await DestroyFakeBroker(cancel);
+
+                await Task.Delay(2000);
+
+                Assert.AreEqual(true, cache.IsStaled);
+
+            }
+        }
+
+
+        [Test]
+        public async Task ShouldProduceEventsAndConsumeThemViaEventCache()
+        {
+            var eventIdProvider = new InMemoryEventIdProvider();
+            var eventCache = new InMemoryEventCache(eventIdProvider, _eventSerializer);
+            var cancel = new CancellationTokenSource();
+            SetupFakeBroker(cancel.Token, eventCache);
+
+            await Task.Delay(2000);
+
+            var marketConfiguration = new ProducerConfiguration()
+            {
+                RouterEndpoint = ToPublishersEndpoint,
+                HearbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
+
+            var producer = new Market("TEST", marketConfiguration, _eventSerializer, TimeSpan.FromMilliseconds(1000));
+            await producer.Run();
+
+            await Task.Delay(2000);
+
+            var eventCountOnProducer = producer.Prices.Count;
+            var eventsOnEventCache = (await eventCache.GetAllStreams())
+                .Select(msg => _serializer.Deserialize<ChangeCcyPairPrice>(msg.ProducerMessage.MessageBytes))
+                .ToList();
+
+            Assert.Greater(eventCountOnProducer, 0);
+            Assert.Greater(eventsOnEventCache.Count, 0);
+            Assert.AreEqual(eventCountOnProducer, eventsOnEventCache.Count);
+
+            Assert.IsTrue(eventsOnEventCache.All(ev => producer.Prices.Any(p=> p.Ask == ev.Ask)));
+
+            producer.Publish(new ChangeCcyPairPrice("TEST", "TEST-Market", 0.0, 0.0, 0.0, 0.0));
+
+            await Task.Delay(200);
+
+            var testEvent = await eventCache.GetStream("TEST");
+
+            Assert.AreEqual(1, testEvent.Count());
+
+            await DestroyFakeBroker(cancel);
 
         }
 

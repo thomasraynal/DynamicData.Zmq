@@ -28,6 +28,8 @@ namespace ZeroMQPlayground.DynamicData.Cache
         private ConfiguredTaskAwaitable _heartbeatProc;
 
         private readonly BehaviorSubject<DynamicCacheState> _state;
+        private readonly BehaviorSubject<bool> _isStaled;
+
         private SubscriberSocket _cacheUpdateSocket;
         private readonly IEventSerializer _eventSerializer;
 
@@ -47,6 +49,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
             _sourceCache = new SourceCache<TAggregate, TKey>(selector => selector.Id);
             _cancel = new CancellationTokenSource();
             _state = new BehaviorSubject<DynamicCacheState>(DynamicCacheState.NotConnected);
+            _isStaled = new BehaviorSubject<bool>(true);
             _caughtingUpCache = new CaughtingUpCache<TKey, TAggregate>();
 
         }
@@ -68,6 +71,12 @@ namespace ZeroMQPlayground.DynamicData.Cache
                 return _state.Value;
             }
         }
+
+        public IObservable<bool> OnStaled()
+        {
+            return _isStaled.AsObservable();
+        }
+        public bool IsStaled => _isStaled.Value;
 
         public IEnumerable<TAggregate> GetItems() => _sourceCache.Items;
 
@@ -115,7 +124,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
                     {
                         case DynamicCacheState.Connected:
 
-                            if (_state.Value == DynamicCacheState.NotConnected || _state.Value == DynamicCacheState.Reconnected || _state.Value == DynamicCacheState.Staled)
+                            if (_state.Value == DynamicCacheState.NotConnected || _state.Value == DynamicCacheState.Reconnected)
                             {
                                 _state.OnNext(currentState);
                             }
@@ -127,7 +136,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
                             break;
 
                         case DynamicCacheState.Disconnected:
-                            if (_state.Value == DynamicCacheState.Connected || _state.Value == DynamicCacheState.Reconnected || _state.Value == DynamicCacheState.Staled)
+                            if (_state.Value == DynamicCacheState.Connected || _state.Value == DynamicCacheState.Reconnected)
                             {
                                 _state.OnNext(currentState);
                             }
@@ -178,10 +187,9 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
                         OnEventReceived(@event);
                     }
-                    else if (_state.Value == DynamicCacheState.Connected)
-                    {
-                        _state.OnNext(DynamicCacheState.Staled);
-                    }
+
+                    _isStaled.OnNext(!hasMessage);
+
                 }
             }
         }

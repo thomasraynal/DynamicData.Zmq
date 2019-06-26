@@ -45,7 +45,7 @@ namespace ZeroMQPlayground.DynamicData.Default
             return Task.FromResult(eventID);
 
         }
-        private Task<IEnumerable<IEventMessage>> GetAllStreams()
+        public Task<IEnumerable<IEventMessage>> GetAllStreams()
         {
             if (_cache.Count == 0) return Task.FromResult(Enumerable.Empty<IEventMessage>());
 

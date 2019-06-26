@@ -72,9 +72,11 @@ namespace ZeroMQPlayground.DynamicData.Demo
                 {
                     var changePrice = Next();
 
-                    Publish(changePrice);
-
-                    Prices.Add(changePrice);
+               
+                        Publish(changePrice);
+                        Prices.Add(changePrice);
+                    
+             
                 }
             }
         }
