@@ -52,7 +52,7 @@ namespace ZeroMQPlayground.DynamicData.Broker
             _cancel.Cancel();
 
             _poller.Stop();
-
+            
             _heartbeatSocket.Close();
             _heartbeatSocket.Dispose();
 

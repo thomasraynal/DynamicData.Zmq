@@ -10,5 +10,6 @@ namespace ZeroMQPlayground.DynamicData.Shared
         Guid Id { get; }
         Task Run();
         Task Destroy();
+        ActorState State { get;  }
     }
 }

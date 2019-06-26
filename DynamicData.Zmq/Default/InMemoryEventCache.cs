@@ -88,7 +88,7 @@ namespace ZeroMQPlayground.DynamicData.Default
             if (!_cache.ContainsKey(streamId)) return Enumerable.Empty<IEventMessage>();
 
             var items = _cache[streamId].Values
-                .Where(ev => ev.EventId.Subject == subject || subject == string.Empty)
+                .Where(ev => ev.EventId.Subject.StartsWith(subject) || subject == string.Empty)
                 .Select(cacheItem =>
                 {
                     return new EventMessage()

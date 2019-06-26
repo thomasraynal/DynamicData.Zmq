@@ -26,7 +26,7 @@ namespace ZeroMQPlayground.DynamicData.Shared
         public async Task Destroy()
         {
             if (State == ActorState.Destroyed) throw new InvalidOperationException("actor is already destroyed");
-            if (State == ActorState.Ready) throw new InvalidOperationException("actor must first be started");
+           // if (State == ActorState.Ready) throw new InvalidOperationException("actor must first be started");
 
             await DestroyInternal();
 

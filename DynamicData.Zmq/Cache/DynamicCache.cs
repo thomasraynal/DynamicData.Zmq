@@ -33,7 +33,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
         private SubscriberSocket _cacheUpdateSocket;
         private readonly IEventSerializer _eventSerializer;
 
-        private volatile bool _isCaughtUpProcess;
+        private volatile bool _isCaughtingUp = true;
         private readonly CaughtingUpCache<TKey, TAggregate> _caughtingUpCache;
 
         private readonly ManualResetEventSlim _resetEvent;
@@ -78,6 +78,10 @@ namespace ZeroMQPlayground.DynamicData.Cache
         }
         public bool IsStaled => _isStaled.Value;
 
+
+        //todo - observable
+        public bool IsCaughtingUp => _isCaughtingUp;
+
         public IEnumerable<TAggregate> GetItems() => _sourceCache.Items;
 
         private IStateReply GetStateOfTheWorld()
@@ -96,7 +100,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
                 var hasResponse = dealer.TryReceiveFrameBytes(_configuration.StateCatchupTimeout, out var responseBytes);
 
-                //retry policy
+                //todo: retry policy
                 if (!hasResponse) throw new Exception("unable to reach broker");
 
                 return _eventSerializer.Serializer.Deserialize<StateReply>(responseBytes);
@@ -153,15 +157,16 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
         private void HandleWork()
         {
+  
+
             using (_cacheUpdateSocket = new SubscriberSocket())
             {
-
                 _cacheUpdateSocket.Options.ReceiveHighWatermark = _configuration.ZmqHighWatermark;
 
                 _cacheUpdateSocket.Subscribe(_configuration.Subject);
                 _cacheUpdateSocket.Connect(_configuration.SubscriptionEndpoint);
 
-                _isCaughtUpProcess = true;
+                _isCaughtingUp = true;
 
                 //todo: remove spaghetti code
                 Task.Run(CaughtUpToStateOfTheWorld);
@@ -220,11 +225,11 @@ namespace ZeroMQPlayground.DynamicData.Cache
         private void OnEventReceived(IEvent<TKey, TAggregate> @event)
         {
 
-            if (_isCaughtUpProcess)
+            if (_isCaughtingUp)
             {
                 _resetEvent.Wait();
 
-                if (_isCaughtUpProcess)
+                if (_isCaughtingUp)
                 {
                     _caughtingUpCache.CaughtUpEvents.Add(@event);
                     return;
@@ -237,7 +242,8 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
         private void CaughtUpToStateOfTheWorld()
         {
-            _isCaughtUpProcess = true;
+            //todo: observable
+            _isCaughtingUp = true;
 
             while(CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
             {
@@ -295,7 +301,7 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
             });
 
-            _isCaughtUpProcess = false;
+            _isCaughtingUp = false;
 
             _resetEvent.Set();
 
@@ -304,7 +310,6 @@ namespace ZeroMQPlayground.DynamicData.Cache
 
         protected override Task RunInternal()
         {
-
             _observeCacheState = _state
                 .Where(state => state == DynamicCacheState.Reconnected)
                 .Subscribe(_ =>

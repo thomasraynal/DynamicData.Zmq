@@ -13,5 +13,6 @@ namespace ZeroMQPlayground.DynamicData.Cache
         DynamicCacheState CacheState { get; }
         IObservable<bool> OnStaled();
         bool IsStaled { get; }
+        bool IsCaughtingUp { get; }
     }
 }

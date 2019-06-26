@@ -32,6 +32,12 @@ namespace ZeroMQPlayground.DynamicData
 
         private readonly Random _rand = new Random();
 
+        [TearDown]
+        public void TearDown()
+        {
+            NetMQConfig.Cleanup(false);
+        }
+
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
@@ -412,6 +418,12 @@ namespace ZeroMQPlayground.DynamicData
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
 
             await DestroyFakeBroker(cancel);
+        }
+
+        [Test]
+        public void ShouldSubscribeToSubject()
+        {
+            throw new NotImplementedException();
         }
 
         [Test]
