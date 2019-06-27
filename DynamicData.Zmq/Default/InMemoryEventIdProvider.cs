@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using DynamicData.Broker;
 using DynamicData.EventCache;
 
@@ -10,7 +11,6 @@ namespace DynamicData.Default
     {
         private readonly Dictionary<string, long> _eventStreamsVersionGenerator;
         private readonly List<IEventId> _eventIds;
-        private readonly object _lock = new object();
 
         public InMemoryEventIdProvider()
         {
@@ -20,9 +20,6 @@ namespace DynamicData.Default
 
         public IEventId Next(string streamName, string subject)
         {
-            //lock (_lock)
-            //{
-
                 var version = -1L;
 
                 if (!_eventStreamsVersionGenerator.ContainsKey(streamName))
@@ -47,6 +44,13 @@ namespace DynamicData.Default
                 return eventId;
 
             }
-        //}
+
+        public Task Reset()
+        {
+            _eventStreamsVersionGenerator.Clear();
+            _eventIds.Clear();
+
+            return Task.CompletedTask;
+        }
     }
 }

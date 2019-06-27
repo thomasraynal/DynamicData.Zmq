@@ -10,5 +10,7 @@ namespace DynamicData.EventCache
         Task<IEnumerable<IEventMessage>> GetAllStreams();
         Task<IEnumerable<IEventMessage>> GetStream(string streamId);
         Task<IEnumerable<IEventMessage>> GetStreamBySubject(string subject);
+        Task Clear();
+
     }
 }

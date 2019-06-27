@@ -45,6 +45,14 @@ namespace DynamicData.Default
             return Task.FromResult(eventID);
 
         }
+
+        public Task Clear()
+        {
+            _cache.Clear();
+
+            return Task.CompletedTask;
+        }
+
         public Task<IEnumerable<IEventMessage>> GetAllStreams()
         {
             if (_cache.Count == 0) return Task.FromResult(Enumerable.Empty<IEventMessage>());

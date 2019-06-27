@@ -31,9 +31,9 @@ namespace DynamicData.Zmq.Tests
         private EventSerializer _eventSerializer;
 
         private readonly Random _rand = new Random();
-
+       
         [TearDown]
-        public void TearDown()
+        public async Task TearDown()
         {
             NetMQConfig.Cleanup(false);
         }
@@ -108,7 +108,7 @@ namespace DynamicData.Zmq.Tests
                         {
                             var hasResponse = heartbeatSocket.TryReceiveFrameBytes(TimeSpan.FromSeconds(1), out var messageBytes);
 
-                            if (hasResponse)
+                            if (hasResponse && ! cancel.IsCancellationRequested)
                             {
                                 heartbeatSocket.SendFrame(_serializer.Serialize(Heartbeat.Response));
                             }
@@ -134,9 +134,8 @@ namespace DynamicData.Zmq.Tests
 
                         var hasResponse = stateUpdate.TryReceiveMultipartMessage(TimeSpan.FromSeconds(1), ref message);
 
-                        if (hasResponse)
+                        if (hasResponse && !cancel.IsCancellationRequested)
                         {
-
 
                             var subject = message[0].ConvertToString();
                             var payload = message[1];
@@ -167,7 +166,7 @@ namespace DynamicData.Zmq.Tests
 
                             var hasResponse = stateRequestSocket.TryReceiveMultipartMessage(TimeSpan.FromSeconds(1), ref message);
 
-                            if (hasResponse)
+                            if (hasResponse && !cancel.IsCancellationRequested)
                             {
                                 var sender = message[0].Buffer;
                                 var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
@@ -200,7 +199,7 @@ namespace DynamicData.Zmq.Tests
             var cancel = new CancellationTokenSource();
 
             var stateOfTheWorldEventCount = 10000;
-            var ongoingEventCount = 10;
+            var ongoingEventCount = 1000;
 
             var raisedEventDuringCacheBuilding = new List<IEventId>();
 
@@ -251,9 +250,10 @@ namespace DynamicData.Zmq.Tests
 
             });
 
-            await cache.Run();
 
             task.Start();
+
+            await cache.Run();
 
             await Task.Delay(2000);
 
@@ -268,7 +268,8 @@ namespace DynamicData.Zmq.Tests
 
             Assert.AreEqual(stateOfTheWorldEventCount + ongoingEventCount, euroDol.AppliedEvents.Count());
 
-
+            task.Join();
+            await cache.Destroy();
 
         }
 
@@ -284,8 +285,7 @@ namespace DynamicData.Zmq.Tests
 
                 var cancel = new CancellationTokenSource();
 
-                //we handle event loop
-                SetupFakeBroker(cancel.Token, eventCache, useEventLoop: false);
+                SetupFakeBroker(cancel.Token, eventCache);
 
                 await Task.Delay(2000);
 
@@ -301,12 +301,10 @@ namespace DynamicData.Zmq.Tests
 
                 await cache.Run();
 
-                await Task.Delay(1000);
+                await Task.Delay(4000);
 
                 Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
                 Assert.AreEqual(true, cache.IsStaled);
-
-
 
                 var @event = new ChangeCcyPairPrice("TEST", "TEST-Market", 0.0, 0.0, 0.0, 0.0);
                 var message = _eventSerializer.ToProducerMessage(@event);
@@ -328,7 +326,6 @@ namespace DynamicData.Zmq.Tests
                 Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
                 Assert.AreEqual(false, cache.IsStaled);
 
-
                 await Task.Delay(2000);
 
                 Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
@@ -340,7 +337,10 @@ namespace DynamicData.Zmq.Tests
 
                 Assert.AreEqual(true, cache.IsStaled);
 
+                await cache.Destroy();
             }
+
+
         }
 
 
@@ -388,6 +388,7 @@ namespace DynamicData.Zmq.Tests
             Assert.AreEqual(1, testEvent.Count());
 
             await DestroyFakeBroker(cancel);
+            await producer.Destroy();
 
         }
 
@@ -419,13 +420,189 @@ namespace DynamicData.Zmq.Tests
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
 
             await DestroyFakeBroker(cancel);
+            await cache.Destroy();
         }
 
         [Test]
-        public void ShouldSubscribeToSubject()
+        public async Task ShouldSubscribeToSpecificSubject()
         {
-            throw new NotImplementedException();
+            using (var publisherSocket = new PublisherSocket())
+            {
+                publisherSocket.Bind(ToSubscribersEndpoint);
+
+                var createEvent = new Func<string, string, Task>(async (streamId, market) =>
+                  {
+                      var @event = new ChangeCcyPairPrice(streamId, market, 0.0, 0.0, 0.0, 0.0);
+                      var message = _eventSerializer.ToProducerMessage(@event);
+
+                      var eventId = new EventId()
+                      {
+                          EventStream = streamId,
+                          Subject = string.IsNullOrEmpty(market) ? streamId : $"{streamId}.{market}",
+                          Timestamp = DateTime.Now.Ticks,
+                          Version = 0
+                      };
+
+                      publisherSocket.SendMoreFrame(message.Subject)
+                                     .SendMoreFrame(_serializer.Serialize(eventId))
+                                     .SendFrame(_serializer.Serialize(message));
+
+                      await Task.Delay(500);
+
+                  });
+
+                var eventIdProvider = new InMemoryEventIdProvider();
+                var eventCache = new InMemoryEventCache(eventIdProvider, _eventSerializer);
+                var cancel = new CancellationTokenSource();
+
+                var subscribedToStreamId = "EUR/USD";
+                var subscribedToMarket = "Harmony";
+
+                var NOTsubscribedToStreamId = "EUR/GBP";
+                var NOTsubscribedToMarket = "FxConnect";
+
+                //we handle event loop
+                SetupFakeBroker(cancel.Token, eventCache);
+
+                var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+                {
+                    Subject = $"{subscribedToStreamId}.{subscribedToMarket}",
+                    HeartbeatDelay = TimeSpan.FromSeconds(1),
+                    HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                };
+
+                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+
+                await cache.Run();
+
+                await Task.Delay(1000);
+
+                await createEvent(NOTsubscribedToStreamId, NOTsubscribedToMarket);
+
+                Assert.AreEqual(0, cache.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(NOTsubscribedToStreamId, subscribedToMarket);
+
+                Assert.AreEqual(0, cache.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(subscribedToStreamId, NOTsubscribedToMarket);
+
+                Assert.AreEqual(0, cache.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(subscribedToStreamId, subscribedToMarket);
+
+                Assert.AreEqual(1, cache.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(subscribedToStreamId, string.Empty);
+
+                Assert.AreEqual(1, cache.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+
+                await cache.Destroy();
+            }
+
         }
+
+        [Test]
+        public async Task ShouldSubscribeToAllSubjects()
+        {
+            using (var publisherSocket = new PublisherSocket())
+            {
+                publisherSocket.Bind(ToSubscribersEndpoint);
+
+                var createEvent = new Func<string, string, Task>(async (streamId, market) =>
+                {
+                    var @event = new ChangeCcyPairPrice(streamId, market, 0.0, 0.0, 0.0, 0.0);
+                    var message = _eventSerializer.ToProducerMessage(@event);
+
+                    var eventId = new EventId()
+                    {
+                        EventStream = streamId,
+                        Subject = string.IsNullOrEmpty(market) ? streamId : $"{streamId}.{market}",
+                        Timestamp = DateTime.Now.Ticks,
+                        Version = 0
+                    };
+
+                    publisherSocket.SendMoreFrame(message.Subject)
+                                   .SendMoreFrame(_serializer.Serialize(eventId))
+                                   .SendFrame(_serializer.Serialize(message));
+
+                    await Task.Delay(200);
+
+                });
+
+                var eventIdProvider = new InMemoryEventIdProvider();
+                var eventCache = new InMemoryEventCache(eventIdProvider, _eventSerializer);
+                var cancel = new CancellationTokenSource();
+
+                var euroDol = "EUR/USD";
+                var harmony = "Harmony";
+
+                var euroGbp = "EUR/GBP";
+                var fxconnect = "FxConnect";
+
+                SetupFakeBroker(cancel.Token, eventCache, useEventLoop: false);
+
+                var cacheConfigurationEuroDol = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+                {
+                    Subject = $"{euroDol}",
+                    HeartbeatDelay = TimeSpan.FromSeconds(1),
+                    HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                };
+
+                var cacheConfigurationAll = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+                {
+                    Subject = string.Empty,
+                    HeartbeatDelay = TimeSpan.FromSeconds(1),
+                    HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                };
+
+                var cacheEuroDol = new DynamicCache<string, CurrencyPair>(cacheConfigurationEuroDol, _eventSerializer);
+                var cacheAll = new DynamicCache<string, CurrencyPair>(cacheConfigurationAll, _eventSerializer);
+
+                await cacheEuroDol.Run();
+                await cacheAll.Run();
+
+                await Task.Delay(1000);
+
+                await createEvent(euroDol, harmony);
+
+                Assert.AreEqual(1, cacheEuroDol.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+                Assert.AreEqual(1, cacheAll.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(euroDol, fxconnect);
+
+                await Task.Delay(510);
+
+                Assert.AreEqual(2, cacheEuroDol.GetItems().SelectMany(ccy=>ccy.AppliedEvents).Count());
+                Assert.AreEqual(2, cacheAll.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(euroDol, string.Empty);
+
+                Assert.AreEqual(3, cacheEuroDol.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+                Assert.AreEqual(3, cacheAll.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(euroGbp, string.Empty);
+
+                Assert.AreEqual(3, cacheEuroDol.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+                Assert.AreEqual(4, cacheAll.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(euroGbp, harmony);
+
+                Assert.AreEqual(3, cacheEuroDol.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+                Assert.AreEqual(5, cacheAll.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await createEvent(euroGbp, fxconnect);
+
+                Assert.AreEqual(3, cacheEuroDol.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+                Assert.AreEqual(6, cacheAll.GetItems().SelectMany(ccy => ccy.AppliedEvents).Count());
+
+                await cacheEuroDol.Destroy();
+                await cacheAll.Destroy();
+
+            }
+        }
+
 
         [Test]
         public async Task ShouldRetrieveStateOfTheWorld()
@@ -481,6 +658,7 @@ namespace DynamicData.Zmq.Tests
             Assert.AreEqual(lastPriceEvent.Spread, euroDol.Spread);
 
             await DestroyFakeBroker(cancel);
+            await cache.Destroy();
         }
 
 
