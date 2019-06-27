@@ -9,6 +9,7 @@ using DynamicData.Dto;
 using DynamicData.EventCache;
 using DynamicData.Serialization;
 using DynamicData.Shared;
+using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace DynamicData.Broker
 {
@@ -17,13 +18,13 @@ namespace DynamicData.Broker
 
         private readonly CancellationTokenSource _cancel;
 
-        private ConfiguredTaskAwaitable _workProc;
-        private ConfiguredTaskAwaitable _heartbeartProc;
-        private ConfiguredTaskAwaitable _stateOfTheWorldProc;
+        private ConfiguredTaskAwaiter _workProc;
+        private ConfiguredTaskAwaiter _heartbeartProc;
+        private ConfiguredTaskAwaiter _stateOfTheWorldProc;
 
-        private NetMQPoller _poller;
-        private ResponseSocket _heartbeatSocket;
-        private RouterSocket _stateRequestSocket;
+        private NetMQPoller _workPoller;
+        private NetMQPoller _heartbeatPoller;
+        private NetMQPoller _stateRequestPoller;
 
         private readonly IEventCache _cache;
         private readonly ISerializer _serializer;
@@ -40,70 +41,90 @@ namespace DynamicData.Broker
 
         protected override Task RunInternal()
         {
-            _workProc = Task.Run(HandleWork, _cancel.Token).ConfigureAwait(false);
-            _heartbeartProc = Task.Run(HandleHeartbeat, _cancel.Token).ConfigureAwait(false);
-            _stateOfTheWorldProc = Task.Run(HandleStateOfTheWorldRequest, _cancel.Token).ConfigureAwait(false);
+            _workProc = Task.Run(HandleWork, _cancel.Token)
+                            .ConfigureAwait(false)
+                            .GetAwaiter();
+
+            _heartbeartProc = Task.Run(HandleHeartbeat, _cancel.Token)
+                                  .ConfigureAwait(false)
+                                  .GetAwaiter();
+
+
+            _stateOfTheWorldProc = Task.Run(HandleStateOfTheWorldRequest, _cancel.Token)
+                                       .ConfigureAwait(false)
+                                       .GetAwaiter();
 
             return Task.CompletedTask;
         }
 
-        protected override Task DestroyInternal()
+        protected override async Task DestroyInternal()
         {
             _cancel.Cancel();
 
-            _poller.Stop();
-            
-            _heartbeatSocket.Close();
-            _heartbeatSocket.Dispose();
+            _workPoller.Stop();
+            _heartbeatPoller.Stop();
+            _stateRequestPoller.Stop();
 
-            _stateRequestSocket.Close();
-            _stateRequestSocket.Dispose();
-
-            return Task.CompletedTask;
+            while (!_stateOfTheWorldProc.IsCompleted || !_workProc.IsCompleted || !_heartbeartProc.IsCompleted)
+            {
+                await Task.Delay(50);
+            }
 
         }
 
         public void HandleHeartbeat()
         {
-            using (_heartbeatSocket = new ResponseSocket(_configuration.HeartbeatEndpoint))
+            using (var heartbeatSocket = new ResponseSocket(_configuration.HeartbeatEndpoint))
             {
-                while (!_cancel.IsCancellationRequested)
+                using (_heartbeatPoller = new NetMQPoller { heartbeatSocket })
                 {
-                    var messageBytes = _heartbeatSocket.ReceiveFrameBytes();
+                    heartbeatSocket.ReceiveReady += (s, e) =>
+                    {
+                        var messageBytes = e.Socket.ReceiveFrameBytes();
 
-                    if (_cancel.IsCancellationRequested) return;
+                        if (_cancel.IsCancellationRequested) return;
 
-                    _heartbeatSocket.SendFrame(_serializer.Serialize(Heartbeat.Response));
+                        e.Socket.SendFrame(_serializer.Serialize(Heartbeat.Response));
+                    };
 
+                    _heartbeatPoller.Run();
                 }
             }
         }
 
-        private async Task HandleStateOfTheWorldRequest()
+        private Task HandleStateOfTheWorldRequest()
         {
-            using (_stateRequestSocket = new RouterSocket())
+            using (var stateRequestSocket = new RouterSocket())
             {
-                _stateRequestSocket.Bind(_configuration.StateOftheWorldEndpoint);
+                stateRequestSocket.Bind(_configuration.StateOftheWorldEndpoint);
 
-                while (!_cancel.IsCancellationRequested)
+                using (_stateRequestPoller = new NetMQPoller { stateRequestSocket })
                 {
-                    var message = _stateRequestSocket.ReceiveMultipartMessage();
-                    var sender = message[0].Buffer;
-                    var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
+                    stateRequestSocket.ReceiveReady += async (s, e) =>
+                     {
 
-                    var stream = await _cache.GetStreamBySubject(request.Subject);
+                         var message = e.Socket.ReceiveMultipartMessage();
+                         var sender = message[0].Buffer;
+                         var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
 
-                    var response = new StateReply()
-                    {
-                        Subject = request.Subject,
-                        Events = stream.ToList()
-                    };
+                         var stream = await _cache.GetStreamBySubject(request.Subject);
 
-                    _stateRequestSocket.SendMoreFrame(sender)
-                                       .SendFrame(_serializer.Serialize(response));
+                         var response = new StateReply()
+                         {
+                             Subject = request.Subject,
+                             Events = stream.ToList()
+                         };
 
+                         e.Socket.SendMoreFrame(sender)
+                                            .SendFrame(_serializer.Serialize(response));
+
+                     };
+
+                    _stateRequestPoller.Run();
                 }
             }
+
+            return Task.CompletedTask;
         }
 
         private void HandleWork()
@@ -134,9 +155,9 @@ namespace DynamicData.Broker
                                                   .SendFrame(payload.Buffer);
                             };
 
-                    using (_poller = new NetMQPoller { stateUpdate, stateUpdatePublish })
+                    using (_workPoller = new NetMQPoller { stateUpdate, stateUpdatePublish })
                     {
-                        _poller.Run();
+                        _workPoller.Run();
                     }
                 }
             }

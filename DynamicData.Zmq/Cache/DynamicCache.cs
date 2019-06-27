@@ -13,6 +13,8 @@ using DynamicData.Dto;
 using DynamicData.Event;
 using DynamicData.EventCache;
 using DynamicData.Shared;
+using System.Reactive.Disposables;
+using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace DynamicData.Cache
 {
@@ -22,34 +24,35 @@ namespace DynamicData.Cache
         private readonly IDynamicCacheConfiguration _configuration;
         private readonly CancellationTokenSource _cancel;
 
-        private IDisposable _observeCacheState;
-
-        private ConfiguredTaskAwaitable _workProc;
-        private ConfiguredTaskAwaitable _heartbeatProc;
-
+        private CompositeDisposable _cleanup;
+        private ConfiguredTaskAwaiter _workProc;
+        private ConfiguredTaskAwaiter _heartbeatProc;
+        private NetMQPoller _cacheUpdatePoller;
         private readonly BehaviorSubject<DynamicCacheState> _state;
         private readonly BehaviorSubject<bool> _isStaled;
-
-        private SubscriberSocket _cacheUpdateSocket;
+      
+       // private SubscriberSocket _cacheUpdateSocket;
         private readonly IEventSerializer _eventSerializer;
 
-        private volatile bool _isCaughtingUp = true;
+        private readonly BehaviorSubject<bool> _isCaughtingUp;
         private readonly CaughtingUpCache<TKey, TAggregate> _caughtingUpCache;
 
-        private readonly ManualResetEventSlim _resetEvent;
+        private readonly ManualResetEventSlim _blockEventConsumption;
         private readonly SourceCache<TAggregate, TKey> _sourceCache;
 
         public DynamicCache(IDynamicCacheConfiguration configuration, IEventSerializer eventSerializer)
         {
 
-            _resetEvent = new ManualResetEventSlim(true);
+            _blockEventConsumption = new ManualResetEventSlim(true);
 
+            _cleanup = new CompositeDisposable();
             _eventSerializer = eventSerializer;
             _configuration = configuration;
             _sourceCache = new SourceCache<TAggregate, TKey>(selector => selector.Id);
             _cancel = new CancellationTokenSource();
             _state = new BehaviorSubject<DynamicCacheState>(DynamicCacheState.NotConnected);
             _isStaled = new BehaviorSubject<bool>(true);
+            _isCaughtingUp = new BehaviorSubject<bool>(false);
             _caughtingUpCache = new CaughtingUpCache<TKey, TAggregate>();
 
         }
@@ -78,9 +81,11 @@ namespace DynamicData.Cache
         }
         public bool IsStaled => _isStaled.Value;
 
-
-        //todo - observable
-        public bool IsCaughtingUp => _isCaughtingUp;
+        public IObservable<bool> OnCaughtingUp()
+        {
+            return _isCaughtingUp.AsObservable();
+        }
+        public bool IsCaughtingUp => _isCaughtingUp.Value;
 
         public IEnumerable<TAggregate> GetItems() => _sourceCache.Items;
 
@@ -108,6 +113,7 @@ namespace DynamicData.Cache
             }
         }
 
+        //todo: use timer & poller
         private void HandleHeartbeat()
         {
             while (!_cancel.IsCancellationRequested)
@@ -157,28 +163,37 @@ namespace DynamicData.Cache
 
         private void HandleWork()
         {
-            using (_cacheUpdateSocket = new SubscriberSocket())
+            using (var cacheUpdateSocket = new SubscriberSocket())
             {
-                _cacheUpdateSocket.Options.ReceiveHighWatermark = _configuration.ZmqHighWatermark;
+                cacheUpdateSocket.Options.ReceiveHighWatermark = _configuration.ZmqHighWatermark;
+                cacheUpdateSocket.Subscribe(_configuration.Subject);
+                cacheUpdateSocket.Connect(_configuration.SubscriptionEndpoint);
 
-                _cacheUpdateSocket.Subscribe(_configuration.Subject);
-                _cacheUpdateSocket.Connect(_configuration.SubscriptionEndpoint);
+                bool isSocketActive = false;
 
-                _isCaughtingUp = true;
+                var isStaleTimer = new NetMQTimer(_configuration.IsStaleTimeout);
 
-                //todo: remove spaghetti code
-                Task.Run(CaughtUpToStateOfTheWorld);
-
-                while (!_cancel.IsCancellationRequested)
+                using (_cacheUpdatePoller = new NetMQPoller { cacheUpdateSocket, isStaleTimer })
                 {
-                    NetMQMessage message = null;
-
-                    var hasMessage = _cacheUpdateSocket.TryReceiveMultipartMessage(_configuration.IsStaleTimeout, ref message);
-
-                    if (_cancel.IsCancellationRequested) return;
-
-                    if (hasMessage)
+                    isStaleTimer.Elapsed += (s, e) =>
                     {
+                        //if no activity and state is not staled, set as staled
+                        if (!isSocketActive && !IsStaled)
+                        {
+                            _isStaled.OnNext(true);
+                        }
+   
+                        isSocketActive = false;
+
+                    };
+
+                    cacheUpdateSocket.ReceiveReady += (s, e) =>
+                    {
+                  
+                        var message = e.Socket.ReceiveMultipartMessage();
+
+                        if (_cancel.IsCancellationRequested) return;
+
                         var eventIdBytes = message[1].Buffer;
                         var eventMessageBytes = message[2].Buffer;
 
@@ -188,11 +203,20 @@ namespace DynamicData.Cache
                         var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventId, producerMessage);
 
                         OnEventReceived(@event);
-                    }
 
-                    _isStaled.OnNext(!hasMessage);
+                        isSocketActive = true;
 
+                        if (IsStaled)
+                        {
+                            _isStaled.OnNext(false);
+                        }
+
+                    };
+
+
+                    _cacheUpdatePoller.Run();
                 }
+
             }
         }
 
@@ -222,11 +246,11 @@ namespace DynamicData.Cache
         private void OnEventReceived(IEvent<TKey, TAggregate> @event)
         {
 
-            if (_isCaughtingUp)
+            if (IsCaughtingUp)
             {
-                _resetEvent.Wait();
+                _blockEventConsumption.Wait();
 
-                if (_isCaughtingUp)
+                if (IsCaughtingUp)
                 {
                     _caughtingUpCache.CaughtUpEvents.Add(@event);
                     return;
@@ -239,11 +263,12 @@ namespace DynamicData.Cache
 
         private void CaughtUpToStateOfTheWorld()
         {
-            //todo: observable
-            _isCaughtingUp = true;
-
-            while(CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
+            //failover policy
+            while (CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
             {
+                if (_cancel.IsCancellationRequested) return;
+
+                //todo: log attempt
                 Thread.Sleep(100);
             }
 
@@ -251,6 +276,7 @@ namespace DynamicData.Cache
             {
                 updater.Clear();
 
+                //fetch state of the world
                 var stateOfTheWorld = GetStateOfTheWorld();
 
                 var update = new Action<IEvent<TKey, TAggregate>>((@event) =>
@@ -278,6 +304,7 @@ namespace DynamicData.Cache
 
                 });
 
+                //run all events on cache
                 foreach (var eventMessage in stateOfTheWorld.Events)
                 {
                     var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventMessage);
@@ -285,7 +312,8 @@ namespace DynamicData.Cache
                     update(@event);
                 }
 
-                _resetEvent.Reset();
+                //block new events consumption until the caughting up cache is digested
+                _blockEventConsumption.Reset();
 
                 var replayEvents = _caughtingUpCache.CaughtUpEvents
                                                 .Where(ev => !stateOfTheWorld.Events.Any(msg => msg.EventId.Id == ev.EventId))
@@ -298,45 +326,70 @@ namespace DynamicData.Cache
 
             });
 
-            _isCaughtingUp = false;
+            //the cache is up to date
+            _isCaughtingUp.OnNext(false);
 
-            _resetEvent.Set();
+            //allow event consumption to proceed
+            _blockEventConsumption.Set();
 
+            //clear the caughting up cache for further use
             _caughtingUpCache.Clear();
         }
 
         protected override Task RunInternal()
         {
-            _observeCacheState = _state
+            //on reconnected start a caughtup process
+            var observeCacheState = _state
                 .Where(state => state == DynamicCacheState.Reconnected)
                 .Subscribe(_ =>
                  {
-                     Task.Run(CaughtUpToStateOfTheWorld);
+                     _isCaughtingUp.OnNext(true);
                  });
 
-            _workProc = Task.Run(HandleWork, _cancel.Token).ConfigureAwait(false);
+            _cleanup.Add(observeCacheState);
 
-            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token).ConfigureAwait(false);
+            //start caughtingup by fetching the broker state of the world
+            var caughtingUpState = _isCaughtingUp
+                .Where(state => state)
+                .Subscribe(_ =>
+                {
+                    //run on new Task as CaughtUpToStateOfTheWorld is blocking
+                    Task.Run(CaughtUpToStateOfTheWorld);
+                });
+
+            _cleanup.Add(caughtingUpState);
+
+            _workProc = Task.Run(HandleWork, _cancel.Token)
+                            .ConfigureAwait(false)
+                            .GetAwaiter();
+
+            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token)
+                                 .ConfigureAwait(false)
+                                 .GetAwaiter();
+
+            _isCaughtingUp.OnNext(true);
 
             return Task.CompletedTask;
       
         }
 
-        protected override Task DestroyInternal()
+        protected async override Task DestroyInternal()
         {
             _cancel.Cancel();
 
-            _observeCacheState.Dispose();
+            _cleanup.Dispose();
 
             _state.OnCompleted();
             _state.Dispose();
 
             _sourceCache.Dispose();
 
-            _cacheUpdateSocket.Close();
-            _cacheUpdateSocket.Dispose();
+            _cacheUpdatePoller.Stop();
 
-            return Task.CompletedTask;
+            while (!_workProc.IsCompleted || !_heartbeatProc.IsCompleted)
+            {
+               await Task.Delay(50);
+            }
         }
     }
 }

@@ -9,18 +9,18 @@ using System.Threading.Tasks;
 using DynamicData.Dto;
 using DynamicData.Event;
 using DynamicData.Shared;
+using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace DynamicData.Producer
 {
     public abstract class ProducerBase<TKey,TAggregate> : ActorBase where TAggregate : IAggregate<TKey>
     {
 
-        private readonly ConfiguredTaskAwaitable _workProc;
         private readonly IEventSerializer _eventSerializer;
         private readonly IProducerConfiguration _configuration;
         private readonly CancellationTokenSource _cancel;
         private readonly BehaviorSubject<ProducerState> _state;
-        private ConfiguredTaskAwaitable _heartbeatProc;
+        private ConfiguredTaskAwaiter _heartbeatProc;
         private PublisherSocket _publisherSocket;
 
         public ProducerState ProducerState
@@ -51,13 +51,15 @@ namespace DynamicData.Producer
             _publisherSocket = new PublisherSocket();
             _publisherSocket.Connect(_configuration.RouterEndpoint);
 
-            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token).ConfigureAwait(false);
+            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token)
+                                 .ConfigureAwait(false)
+                                 .GetAwaiter();
 
 
             return Task.CompletedTask;
         }
 
-        protected override Task DestroyInternal()
+        protected async override Task DestroyInternal()
         {
             _cancel.Cancel();
 
@@ -67,14 +69,19 @@ namespace DynamicData.Producer
             _publisherSocket.Close();
             _publisherSocket.Dispose();
 
-            return Task.CompletedTask;
+
+            while (!_heartbeatProc.IsCompleted)
+            {
+                await Task.Delay(100);
+            }
+
         }
 
         private void HandleHeartbeat()
         {
             while (!_cancel.IsCancellationRequested)
             {
-
+                //todo use timer & poller
                 using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
                 {
                     var query = _eventSerializer.Serializer.Serialize(Heartbeat.Query);

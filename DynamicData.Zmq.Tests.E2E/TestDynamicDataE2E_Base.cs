@@ -39,10 +39,7 @@ namespace DynamicData.E2E
             await Task.WhenAll(_actors.Where(actor => actor.State != ActorState.Destroyed)
                                       .Select(async actor => await actor.Destroy()));
 
-
             NetMQConfig.Cleanup(false);
-
-         
 
         }
 

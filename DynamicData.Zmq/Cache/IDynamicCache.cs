@@ -13,6 +13,7 @@ namespace DynamicData.Cache
         DynamicCacheState CacheState { get; }
         IObservable<bool> OnStaled();
         bool IsStaled { get; }
+        IObservable<bool> OnCaughtingUp();
         bool IsCaughtingUp { get; }
     }
 }

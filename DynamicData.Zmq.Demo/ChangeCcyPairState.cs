@@ -4,6 +4,13 @@ namespace DynamicData.Demo
 {
     public class ChangeCcyPairState : CommandBase<string, CurrencyPair>
     {
+        public ChangeCcyPairState(string ccyPairId, string market, CcyPairState state) : base(ccyPairId)
+        {
+            State = state;
+            Market = market;
+        }
+
+
         [RoutingPosition(0)]
         public CcyPairState State { get; set; }
 
