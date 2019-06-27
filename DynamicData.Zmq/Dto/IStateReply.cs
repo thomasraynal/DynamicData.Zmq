@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using ZeroMQPlayground.DynamicData.Dto;
+using DynamicData.Dto;
 
-namespace ZeroMQPlayground.DynamicData.Dto
+namespace DynamicData.Dto
 {
     public interface IStateReply
     {

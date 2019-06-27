@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Broker;
-using ZeroMQPlayground.DynamicData.Dto;
-using ZeroMQPlayground.DynamicData.Event;
-using ZeroMQPlayground.DynamicData.EventCache;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Broker;
+using DynamicData.Dto;
+using DynamicData.Event;
+using DynamicData.EventCache;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Default
+namespace DynamicData.Default
 {
     public class InMemoryEventCache : IEventCache
     {

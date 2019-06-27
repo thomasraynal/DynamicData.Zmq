@@ -1,4 +1,4 @@
-﻿namespace ZeroMQPlayground.DynamicData.Broker
+﻿namespace DynamicData.Broker
 {
     public interface IBrokerageServiceConfiguration
     {

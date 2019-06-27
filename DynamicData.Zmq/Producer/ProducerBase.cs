@@ -6,11 +6,11 @@ using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Dto;
-using ZeroMQPlayground.DynamicData.Event;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Dto;
+using DynamicData.Event;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Producer
+namespace DynamicData.Producer
 {
     public abstract class ProducerBase<TKey,TAggregate> : ActorBase where TAggregate : IAggregate<TKey>
     {

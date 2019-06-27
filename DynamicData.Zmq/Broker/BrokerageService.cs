@@ -4,13 +4,13 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Broker;
-using ZeroMQPlayground.DynamicData.Dto;
-using ZeroMQPlayground.DynamicData.EventCache;
-using ZeroMQPlayground.DynamicData.Serialization;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Broker;
+using DynamicData.Dto;
+using DynamicData.EventCache;
+using DynamicData.Serialization;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Broker
+namespace DynamicData.Broker
 {
     public class BrokerageService : ActorBase
     {

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Dto;
+using DynamicData.Dto;
 
-namespace ZeroMQPlayground.DynamicData.EventCache
+namespace DynamicData.EventCache
 {
     public interface IEventCache
     {

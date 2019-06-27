@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Demo
+namespace DynamicData.Demo
 {
     public enum CcyPairState
     {

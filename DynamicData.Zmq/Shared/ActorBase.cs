@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ZeroMQPlayground.DynamicData.Shared
+namespace DynamicData.Shared
 {
     public abstract class ActorBase : IActor
     {

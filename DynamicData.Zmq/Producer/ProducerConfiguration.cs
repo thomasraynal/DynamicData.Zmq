@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Producer
+namespace DynamicData.Producer
 {
     public class ProducerConfiguration : IProducerConfiguration
     {

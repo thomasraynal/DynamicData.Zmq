@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Shared
+namespace DynamicData.Shared
 {
     public enum ActorState
     {

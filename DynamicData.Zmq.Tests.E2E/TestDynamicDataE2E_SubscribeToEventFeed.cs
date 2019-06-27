@@ -2,12 +2,12 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Broker;
-using ZeroMQPlayground.DynamicData.Cache;
-using ZeroMQPlayground.DynamicData.Demo;
-using ZeroMQPlayground.DynamicData.Producer;
+using DynamicData.Broker;
+using DynamicData.Cache;
+using DynamicData.Demo;
+using DynamicData.Producer;
 
-namespace ZeroMQPlayground.DynamicData.E2E
+namespace DynamicData.E2E
 {
     [TestFixture]
     public class TestDynamicDataE2E_SubscribeToEventFeed : TestDynamicDataE2E_Base

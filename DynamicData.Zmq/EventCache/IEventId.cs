@@ -1,4 +1,4 @@
-﻿namespace ZeroMQPlayground.DynamicData.EventCache
+﻿namespace DynamicData.EventCache
 {
     public interface IEventId
     {

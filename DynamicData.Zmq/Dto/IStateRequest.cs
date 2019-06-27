@@ -1,4 +1,4 @@
-﻿namespace ZeroMQPlayground.DynamicData.Dto
+﻿namespace DynamicData.Dto
 {
     public interface IStateRequest
     {

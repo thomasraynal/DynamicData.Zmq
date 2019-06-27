@@ -1,7 +1,7 @@
 ﻿using System;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Cache
+namespace DynamicData.Cache
 {
     public interface IDynamicCacheConfiguration : IHeartbeatChecker
     {

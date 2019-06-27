@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Event
+namespace DynamicData.Event
 {
     [AttributeUsage(AttributeTargets.Class)]
     public sealed class Routable : Attribute

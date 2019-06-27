@@ -4,10 +4,10 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Event;
-using ZeroMQPlayground.DynamicData.Producer;
+using DynamicData.Event;
+using DynamicData.Producer;
 
-namespace ZeroMQPlayground.DynamicData.Demo
+namespace DynamicData.Demo
 {
     public class Market : ProducerBase<string,CurrencyPair>
     {

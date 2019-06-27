@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ZeroMQPlayground.DynamicData.Dto
+namespace DynamicData.Dto
 {
     public interface IProducerMessage
     {

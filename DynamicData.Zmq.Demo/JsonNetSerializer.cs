@@ -2,9 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeroMQPlayground.DynamicData.Serialization;
+using DynamicData.Serialization;
 
-namespace ZeroMQPlayground.DynamicData.Demo
+namespace DynamicData.Demo
 {
     public class JsonNetSerializer : ISerializer
     {

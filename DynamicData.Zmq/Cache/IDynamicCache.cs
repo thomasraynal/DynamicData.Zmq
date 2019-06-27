@@ -1,9 +1,9 @@
 ﻿using DynamicData;
 using System;
 using System.Collections.Generic;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Cache
+namespace DynamicData.Cache
 {
     public interface IDynamicCache<TKey, TAggregate> : IActor where TAggregate : IAggregate<TKey>
     {

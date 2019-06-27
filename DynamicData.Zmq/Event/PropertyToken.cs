@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Event
+namespace DynamicData.Event
 {
     public class PropertyToken
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Event
+namespace DynamicData.Event
 {
     //todo: string representation of event stream id
     public interface IEvent

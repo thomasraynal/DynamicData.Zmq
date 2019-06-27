@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Cache
+namespace DynamicData.Cache
 {
     public class DynamicCacheConfiguration : IDynamicCacheConfiguration
     {

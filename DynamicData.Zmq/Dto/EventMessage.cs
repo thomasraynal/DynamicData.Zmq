@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeroMQPlayground.DynamicData.EventCache;
+using DynamicData.EventCache;
 
-namespace ZeroMQPlayground.DynamicData.Dto
+namespace DynamicData.Dto
 {
     public class EventMessage : IEventMessage
     {

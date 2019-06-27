@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Demo
+namespace DynamicData.Demo
 {
     public class AbstractConverter<TAbstract, TReal> : JsonConverter
     {

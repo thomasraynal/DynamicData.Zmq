@@ -1,8 +1,8 @@
-﻿using ZeroMQPlayground.DynamicData.Dto;
-using ZeroMQPlayground.DynamicData.EventCache;
-using ZeroMQPlayground.DynamicData.Serialization;
+﻿using DynamicData.Dto;
+using DynamicData.EventCache;
+using DynamicData.Serialization;
 
-namespace ZeroMQPlayground.DynamicData.Event
+namespace DynamicData.Event
 {
     public interface IEventSerializer
     {

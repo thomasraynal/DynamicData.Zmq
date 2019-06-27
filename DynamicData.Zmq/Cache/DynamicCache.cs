@@ -9,12 +9,12 @@ using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Dto;
-using ZeroMQPlayground.DynamicData.Event;
-using ZeroMQPlayground.DynamicData.EventCache;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Dto;
+using DynamicData.Event;
+using DynamicData.EventCache;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Cache
+namespace DynamicData.Cache
 {
     public class DynamicCache<TKey, TAggregate> : ActorBase, IDynamicCache<TKey, TAggregate>
         where TAggregate : IAggregate<TKey>, new()

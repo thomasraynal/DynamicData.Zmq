@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Broker
+namespace DynamicData.Broker
 {
     public class BrokerageServiceConfiguration : IBrokerageServiceConfiguration
     {

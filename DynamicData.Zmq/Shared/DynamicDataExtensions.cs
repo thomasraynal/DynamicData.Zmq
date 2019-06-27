@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Reactive;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Shared
+namespace DynamicData.Shared
 {
     public static class DynamicDataExtensions
     {

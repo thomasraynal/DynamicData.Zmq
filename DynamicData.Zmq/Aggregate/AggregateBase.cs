@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeroMQPlayground.DynamicData.Event;
+using DynamicData.Event;
 
-namespace ZeroMQPlayground.DynamicData.Aggregate
+namespace DynamicData.Aggregate
 {
     public class AggregateBase<TKey> : IAggregate<TKey>
     {

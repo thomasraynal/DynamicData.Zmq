@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.Dto
+namespace DynamicData.Dto
 {
     public class Heartbeat
     {

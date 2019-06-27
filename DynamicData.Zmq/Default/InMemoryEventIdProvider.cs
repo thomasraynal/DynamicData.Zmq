@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeroMQPlayground.DynamicData.Broker;
-using ZeroMQPlayground.DynamicData.EventCache;
+using DynamicData.Broker;
+using DynamicData.EventCache;
 
-namespace ZeroMQPlayground.DynamicData.Default
+namespace DynamicData.Default
 {
     public class InMemoryEventIdProvider : IEventIdProvider
     {

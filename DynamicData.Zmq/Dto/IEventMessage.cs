@@ -1,6 +1,6 @@
-﻿using ZeroMQPlayground.DynamicData.EventCache;
+﻿using DynamicData.EventCache;
 
-namespace ZeroMQPlayground.DynamicData.Dto
+namespace DynamicData.Dto
 {
     public interface IEventMessage
     {

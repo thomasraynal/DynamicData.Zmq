@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 
-using ZeroMQPlayground.DynamicData.Aggregate;
-using ZeroMQPlayground.DynamicData.Event;
+using DynamicData.Aggregate;
+using DynamicData.Event;
 
-namespace ZeroMQPlayground.DynamicData
+namespace DynamicData
 {
     public interface IAggregate
     {

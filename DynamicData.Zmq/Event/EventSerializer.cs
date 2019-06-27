@@ -4,11 +4,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using ZeroMQPlayground.DynamicData.Dto;
-using ZeroMQPlayground.DynamicData.EventCache;
-using ZeroMQPlayground.DynamicData.Serialization;
+using DynamicData.Dto;
+using DynamicData.EventCache;
+using DynamicData.Serialization;
 
-namespace ZeroMQPlayground.DynamicData.Event
+namespace DynamicData.Event
 {
 
     public class EventSerializer : IEventSerializer

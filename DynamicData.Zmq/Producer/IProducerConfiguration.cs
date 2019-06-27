@@ -1,7 +1,7 @@
 ﻿using System;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Producer
+namespace DynamicData.Producer
 {
     public interface IProducerConfiguration : IHeartbeatChecker
     {

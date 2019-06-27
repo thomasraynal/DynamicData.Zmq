@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ZeroMQPlayground.DynamicData.EventCache
+namespace DynamicData.EventCache
 {
     public class EventId : IEventId
     {

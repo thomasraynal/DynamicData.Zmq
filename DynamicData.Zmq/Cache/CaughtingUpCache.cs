@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeroMQPlayground.DynamicData.Event;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Event;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.Cache
+namespace DynamicData.Cache
 {
     public class CaughtingUpCache<TKey, TAggregate> where TAggregate : IAggregate<TKey>, new()
     {

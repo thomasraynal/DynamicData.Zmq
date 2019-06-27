@@ -1,7 +1,7 @@
 ﻿using System.Linq;
-using ZeroMQPlayground.DynamicData.Aggregate;
+using DynamicData.Aggregate;
 
-namespace ZeroMQPlayground.DynamicData.Demo
+namespace DynamicData.Demo
 {
     public class CurrencyPair : AggregateBase<string>
     {

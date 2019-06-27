@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using ZeroMQPlayground.DynamicData.Shared;
+using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.EventCache
+namespace DynamicData.EventCache
 {
     public class EventCacheItem : IEventCacheItem
     {

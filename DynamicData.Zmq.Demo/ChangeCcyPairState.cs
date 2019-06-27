@@ -1,6 +1,6 @@
-﻿using ZeroMQPlayground.DynamicData.Event;
+﻿using DynamicData.Event;
 
-namespace ZeroMQPlayground.DynamicData.Demo
+namespace DynamicData.Demo
 {
     public class ChangeCcyPairState : CommandBase<string, CurrencyPair>
     {

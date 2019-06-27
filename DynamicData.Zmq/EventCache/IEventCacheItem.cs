@@ -1,6 +1,6 @@
-﻿using ZeroMQPlayground.DynamicData.Shared;
+﻿using DynamicData.Shared;
 
-namespace ZeroMQPlayground.DynamicData.EventCache
+namespace DynamicData.EventCache
 {
     public interface IEventCacheItem
     {

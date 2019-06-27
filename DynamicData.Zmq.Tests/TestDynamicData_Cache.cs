@@ -8,15 +8,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ZeroMQPlayground.DynamicData.Cache;
-using ZeroMQPlayground.DynamicData.Default;
-using ZeroMQPlayground.DynamicData.Demo;
-using ZeroMQPlayground.DynamicData.Dto;
-using ZeroMQPlayground.DynamicData.Event;
-using ZeroMQPlayground.DynamicData.EventCache;
-using ZeroMQPlayground.DynamicData.Producer;
+using DynamicData.Default;
+using DynamicData.Demo;
+using DynamicData.Dto;
+using DynamicData.Event;
+using DynamicData.EventCache;
+using DynamicData.Producer;
+using DynamicData.Cache;
 
-namespace ZeroMQPlayground.DynamicData
+namespace DynamicData.Zmq.Tests
 {
     [TestFixture]
     public class TestDynamicData_Cache
