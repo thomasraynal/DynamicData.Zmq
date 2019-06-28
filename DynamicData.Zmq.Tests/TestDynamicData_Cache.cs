@@ -210,84 +210,94 @@ namespace DynamicData.Zmq.Tests
         }
 
         [Test]
-        public async Task ShouldHandleNewEventsWhileRebuildingTheCache()
+        public async Task ShouldHandleConnectivityErrors()
         {
-
-            var topic = "EUR/USD";
-            var stateOfTheWorldEventCount = 10000;
-            var ongoingEventCount = 100;
-            var raisedEventDuringCacheBuilding = new List<IEventId>();
-            var cancel = new CancellationTokenSource();
-
-            for (var i = 0; i < stateOfTheWorldEventCount; i++)
-            {
-                var next = Next(topic);
-                var message = _eventSerializer.ToProducerMessage(next);
-                await _eventCache.AppendToStream(next.Subject, _serializer.Serialize(message));
-            }
-
-            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+            var cacheConfiguration = new DynamicCacheConfiguration("tcp://localhost:9090", "tcp://localhost:9090", HeartbeatEndpoint)
             {
                 Subject = string.Empty,
-                HeartbeatDelay = TimeSpan.FromSeconds(1),
-                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+                HeartbeatDelay = TimeSpan.FromMilliseconds(500),
+                HeartbeatTimeout = TimeSpan.FromMilliseconds(500),
+                StateCatchupTimeout = TimeSpan.FromMilliseconds(500)
             };
 
             var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
-
-            var task = new Thread(() =>
-            {
-                using (var stateUpdatePublish = new PublisherSocket())
-                {
-                    stateUpdatePublish.Bind(ToSubscribersEndpoint);
-
-                    for (var i = 0; i < ongoingEventCount; i++)
-                    {
-                        if (cancel.IsCancellationRequested) return;
-
-                        var next = Next(topic);
-                        var message = _eventSerializer.ToProducerMessage(next);
-                        var payload = _serializer.Serialize(message);
-                        var eventId = _eventCache.AppendToStream(next.Subject, payload).Result;
-
-                        raisedEventDuringCacheBuilding.Add(eventId);
-
-                        stateUpdatePublish.SendMoreFrame(next.Subject)
-                                          .SendMoreFrame(_serializer.Serialize(eventId))
-                                          .SendFrame(payload);
-
-
-                    }
-                }
-
-            });
-
-
-            task.Start();
 
             await cache.Run();
 
             await Task.Delay(2000);
 
-            cancel.Cancel();
+            Assert.Greater(cache.Errors.Count, 0);
 
-            task.Join();
+            var error = cache.Errors.First();
 
-            await Task.Delay(1000);
+            Assert.AreEqual(DynamicCacheErrorType.GetStateOfTheWorldFailure, error.CacheErrorStatus);
+            Assert.AreEqual(typeof(UnreachableBrokerException), error.Exception.GetType());
+        }
 
-            Assert.IsFalse(cache.IsCaughtingUp);
+        [Test]
+        public async Task ShouldHandleNewEventsWhileRebuildingTheCache()
+        {
+            using (var stateUpdatePublish = new PublisherSocket())
+            {
+                stateUpdatePublish.Bind(ToSubscribersEndpoint);
 
-            var ccyPairs = cache.Items
-                                .ToList();
+                var topic = "EUR/USD";
+                var stateOfTheWorldEventCount = 10000;
+                var initialEventCache = 100;
+                var raisedEventDuringCacheBuilding = new List<IEventId>();
 
+                for (var i = 0; i < stateOfTheWorldEventCount; i++)
+                {
+                    var next = Next(topic);
+                    var message = _eventSerializer.ToProducerMessage(next);
+                    await _eventCache.AppendToStream(next.Subject, _serializer.Serialize(message));
+                }
 
-            Assert.AreEqual(1, ccyPairs.Count);
+                var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+                {
+                    Subject = string.Empty,
+                    HeartbeatDelay = TimeSpan.FromSeconds(1),
+                    HeartbeatTimeout = TimeSpan.FromSeconds(1)
+                };
 
-            var euroDol = ccyPairs.First();
+                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
 
-            Assert.AreEqual(stateOfTheWorldEventCount + ongoingEventCount, euroDol.AppliedEvents.Count());
+                await cache.Run();
 
-            await cache.Destroy();
+                for (var i = 0; i < initialEventCache; i++)
+                {
+
+                    var next = Next(topic);
+                    var message = _eventSerializer.ToProducerMessage(next);
+                    var payload = _serializer.Serialize(message);
+                    var eventId = _eventCache.AppendToStream(next.Subject, payload).Result;
+
+                    raisedEventDuringCacheBuilding.Add(eventId);
+
+                    stateUpdatePublish.SendMoreFrame(next.Subject)
+                                      .SendMoreFrame(_serializer.Serialize(eventId))
+                                      .SendFrame(payload);
+
+                    await Task.Delay(100);
+                }
+
+           
+
+                await Task.Delay(2000);
+
+                Assert.IsFalse(cache.IsCaughtingUp);
+
+                var ccyPairs = cache.Items
+                                    .ToList();
+
+                Assert.AreEqual(1, ccyPairs.Count);
+
+                var euroDol = ccyPairs.First();
+
+                Assert.AreEqual(stateOfTheWorldEventCount + initialEventCache, euroDol.AppliedEvents.Count());
+
+                await cache.Destroy();
+            }
 
 
         }
@@ -337,7 +347,7 @@ namespace DynamicData.Zmq.Tests
                 Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
                 Assert.AreEqual(false, cache.IsStaled);
 
-                await Task.Delay(3000);
+                await Task.Delay(3500);
 
                 Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
                 Assert.AreEqual(true, cache.IsStaled);
@@ -359,7 +369,7 @@ namespace DynamicData.Zmq.Tests
             var marketConfiguration = new ProducerConfiguration()
             {
                 RouterEndpoint = ToPublishersEndpoint,
-                HearbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromSeconds(1),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
@@ -549,7 +559,7 @@ namespace DynamicData.Zmq.Tests
 
                 await createEvent(euroDol, fxconnect);
 
-                await Task.Delay(510);
+                await Task.Delay(500);
 
                 Assert.AreEqual(2, cacheEuroDol.Items.SelectMany(ccy=>ccy.AppliedEvents).Count());
                 Assert.AreEqual(2, cacheAll.Items.SelectMany(ccy => ccy.AppliedEvents).Count());

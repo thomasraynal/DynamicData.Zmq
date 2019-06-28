@@ -6,7 +6,7 @@ namespace DynamicData.Shared
 {
     public interface IHeartbeatChecker
     {
-        string HearbeatEndpoint { get; set; }
+        string HeartbeatEndpoint { get; set; }
         TimeSpan HeartbeatDelay { get; set; }
         TimeSpan HeartbeatTimeout { get; set; }
     }

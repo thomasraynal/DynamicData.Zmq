@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using DynamicData.Shared;
+using System.Collections.ObjectModel;
 
 namespace DynamicData.Cache
 {
@@ -11,9 +12,11 @@ namespace DynamicData.Cache
         IEnumerable<TAggregate> Items { get; }
         IObservable<DynamicCacheState> OnStateChanged { get; }
         DynamicCacheState CacheState { get; }
-        IObservable<bool> OnStaled { get; }
         bool IsStaled { get; }
-        IObservable<bool> OnCaughtingUp { get; }
+        IObservable<bool> OnStaled { get; }
         bool IsCaughtingUp { get; }
+        IObservable<bool> OnCaughtingUp { get; }
+        ObservableCollection<DynamicCacheMonitoringError> Errors { get; }
+
     }
 }

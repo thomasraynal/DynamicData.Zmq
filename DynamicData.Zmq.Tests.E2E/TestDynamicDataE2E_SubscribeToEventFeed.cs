@@ -29,7 +29,7 @@ namespace DynamicData.E2E
             var marketConfiguration = new ProducerConfiguration()
             {
                 RouterEndpoint = ToPublishersEndpoint,
-                HearbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromSeconds(1),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };

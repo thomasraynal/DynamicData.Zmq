@@ -7,7 +7,6 @@ using DynamicData.Dto;
 using DynamicData.EventCache;
 using DynamicData.Serialization;
 using DynamicData.Shared;
-using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace DynamicData.Broker
 {
@@ -130,7 +129,7 @@ namespace DynamicData.Broker
 
                     stateUpdate.ReceiveReady += async (s, e) =>
                             {
-                           
+
                                 var message = e.Socket.ReceiveMultipartMessage();
 
                                 var subject = message[0].ConvertToString();

@@ -31,7 +31,7 @@ namespace DynamicData.E2E
             var marketConfiguration = new ProducerConfiguration()
             {
                 RouterEndpoint = ToPublishersEndpoint,
-                HearbeatEndpoint = HeartbeatEndpoint
+                HeartbeatEndpoint = HeartbeatEndpoint
             };
 
             var market1 = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(500));

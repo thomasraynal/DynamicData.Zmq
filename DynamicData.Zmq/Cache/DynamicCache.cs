@@ -12,6 +12,9 @@ using DynamicData.Event;
 using DynamicData.EventCache;
 using DynamicData.Shared;
 using System.Reactive.Disposables;
+using Polly;
+using Polly.Retry;
+using System.Collections.ObjectModel;
 
 namespace DynamicData.Cache
 {
@@ -25,6 +28,7 @@ namespace DynamicData.Cache
 
         private Task _workProc;
         private Task _heartbeatProc;
+        private Task _caughtUpWithStateOfTheWorldProc;
 
         private NetMQPoller _cacheUpdatePoller;
         private NetMQPoller _heartbeatPoller;
@@ -38,22 +42,41 @@ namespace DynamicData.Cache
         private readonly CaughtingUpCache<TKey, TAggregate> _caughtingUpCache;
 
         private readonly ManualResetEventSlim _blockEventConsumption;
+        private readonly ObservableCollection<DynamicCacheMonitoringError> _cacheErrors;
         private readonly SourceCache<TAggregate, TKey> _sourceCache;
+
+        private readonly RetryPolicy _getStateOfTheWorldRetyPolicy;
 
         public DynamicCache(IDynamicCacheConfiguration configuration, IEventSerializer eventSerializer)
         {
 
             _blockEventConsumption = new ManualResetEventSlim(true);
 
+            _cacheErrors = new ObservableCollection<DynamicCacheMonitoringError>();
+
             _cleanup = new CompositeDisposable();
             _eventSerializer = eventSerializer;
             _configuration = configuration;
             _sourceCache = new SourceCache<TAggregate, TKey>(selector => selector.Id);
             _cancel = new CancellationTokenSource();
+
             _state = new BehaviorSubject<DynamicCacheState>(DynamicCacheState.NotConnected);
             _isStaled = new BehaviorSubject<bool>(true);
             _isCaughtingUp = new BehaviorSubject<bool>(false);
+
             _caughtingUpCache = new CaughtingUpCache<TKey, TAggregate>();
+
+            _getStateOfTheWorldRetyPolicy = Policy.Handle<Exception>()
+                                                  .RetryForever((ex) =>
+                                                   {
+                                                       //toto : logging
+                                                       _cacheErrors.Add(new DynamicCacheMonitoringError()
+                                                       {
+                                                           CacheErrorStatus = DynamicCacheErrorType.GetStateOfTheWorldFailure,
+                                                           Exception = ex
+                                                       });
+
+                                                   });
 
         }
 
@@ -65,29 +88,34 @@ namespace DynamicData.Cache
         public IObservable<bool> OnCaughtingUp => _isCaughtingUp.AsObservable();
         public bool IsCaughtingUp => _isCaughtingUp.Value;
         public IEnumerable<TAggregate> Items => _sourceCache.Items;
+        public ObservableCollection<DynamicCacheMonitoringError> Errors => _cacheErrors;
 
         private IStateReply GetStateOfTheWorld()
         {
-            using (var dealer = new DealerSocket())
+            var policyResult = _getStateOfTheWorldRetyPolicy.ExecuteAndCapture<IStateReply>(() =>
             {
-                var request = new StateRequest()
+                using (var dealer = new DealerSocket())
                 {
-                    Subject = _configuration.Subject,
-                };
+                    dealer.Connect(_configuration.StateOfTheWorldEndpoint);
 
-                var requestBytes = _eventSerializer.Serializer.Serialize(request);
+                    var request = new StateRequest(_configuration.Subject);
 
-                dealer.Connect(_configuration.StateOfTheWorldEndpoint);
-                dealer.SendFrame(requestBytes);
+                    var requestBytes = _eventSerializer.Serializer.Serialize(request);
 
-                var hasResponse = dealer.TryReceiveFrameBytes(_configuration.StateCatchupTimeout, out var responseBytes);
+                    dealer.SendFrame(requestBytes);
 
-                //todo: retry policy
-                if (!hasResponse) throw new Exception("unable to reach broker");
+                    var hasResponse = dealer.TryReceiveFrameBytes(_configuration.StateCatchupTimeout, out var responseBytes);
 
-                return _eventSerializer.Serializer.Deserialize<StateReply>(responseBytes);
+                    if (!hasResponse) throw new UnreachableBrokerException($"@{_configuration.StateOfTheWorldEndpoint}");
 
-            }
+                    return _eventSerializer.Serializer.Deserialize<StateReply>(responseBytes);
+
+                }
+
+            });
+
+            return policyResult.Result;
+
         }
 
         private void HandleHeartbeat()
@@ -101,8 +129,7 @@ namespace DynamicData.Cache
                 {
                     if (_cancel.IsCancellationRequested) return;
 
-                    //todo: handle zombie socket
-                    using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
+                    using (var heartbeat = new RequestSocket(_configuration.HeartbeatEndpoint))
                     {
 
                         var payload = _eventSerializer.Serializer.Serialize(Heartbeat.Query);
@@ -184,20 +211,32 @@ namespace DynamicData.Cache
 
                     cacheUpdateSocket.ReceiveReady += (s, e) =>
                     {
-                  
-                        var message = e.Socket.ReceiveMultipartMessage();
+                        try
+                        {
 
-                        if (_cancel.IsCancellationRequested) return;
+                            var message = e.Socket.ReceiveMultipartMessage();
 
-                        var eventIdBytes = message[1].Buffer;
-                        var eventMessageBytes = message[2].Buffer;
+                            if (_cancel.IsCancellationRequested) return;
 
-                        var eventId = _eventSerializer.Serializer.Deserialize<IEventId>(eventIdBytes);
-                        var producerMessage = _eventSerializer.Serializer.Deserialize<IProducerMessage>(eventMessageBytes);
+                            var eventIdBytes = message[1].Buffer;
+                            var eventMessageBytes = message[2].Buffer;
 
-                        var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventId, producerMessage);
+                            var eventId = _eventSerializer.Serializer.Deserialize<IEventId>(eventIdBytes);
+                            var producerMessage = _eventSerializer.Serializer.Deserialize<IProducerMessage>(eventMessageBytes);
 
-                        OnEventReceived(@event);
+                            var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventId, producerMessage);
+
+                            OnEventReceived(@event);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            _cacheErrors.Add(new DynamicCacheMonitoringError()
+                            {
+                                CacheErrorStatus = DynamicCacheErrorType.EventHandlingFailure,
+                                Exception = ex
+                            });
+                        }
 
                         isSocketActive = true;
 
@@ -258,7 +297,7 @@ namespace DynamicData.Cache
 
         private void CaughtUpToStateOfTheWorld()
         {
-            //todo: failover policy
+            //no failover policy, Errors observable collection should be enough for monitoring purpose
             while (CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
             {
                 if (_cancel.IsCancellationRequested) return;
@@ -349,11 +388,12 @@ namespace DynamicData.Cache
                 .Subscribe(_ =>
                 {
                     //run on new Task as CaughtUpToStateOfTheWorld is blocking
-                    //todo : handle cancel
-                    Task.Run(CaughtUpToStateOfTheWorld);
+                   _caughtUpWithStateOfTheWorldProc = Task.Run(CaughtUpToStateOfTheWorld, _cancel.Token);
                 });
 
             _cleanup.Add(caughtingUpState);
+
+            _caughtUpWithStateOfTheWorldProc = Task.CompletedTask;
 
             _workProc = Task.Run(HandleWork, _cancel.Token);
 
@@ -379,7 +419,7 @@ namespace DynamicData.Cache
             _cacheUpdatePoller.Stop();
             _heartbeatPoller.Stop();
 
-            await WaitForWorkProceduresToComplete(_workProc, _heartbeatProc);
+            await WaitForWorkProceduresToComplete(_workProc, _heartbeatProc, _caughtUpWithStateOfTheWorldProc);
 
         }
     }

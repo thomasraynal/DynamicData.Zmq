@@ -84,7 +84,7 @@ namespace DynamicData.Producer
                     if (_cancel.IsCancellationRequested) return;
 
                     //todo: handle zombie socket
-                    using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
+                    using (var heartbeat = new RequestSocket(_configuration.HeartbeatEndpoint))
                     {
 
                         var query = _eventSerializer.Serializer.Serialize(Heartbeat.Query);

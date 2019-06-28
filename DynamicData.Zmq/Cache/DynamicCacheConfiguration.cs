@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Polly;
 
 namespace DynamicData.Cache
 {
@@ -9,7 +10,7 @@ namespace DynamicData.Cache
         public DynamicCacheConfiguration(string subscriptionEndpoint, string stateOfTheWorldEndpoint, string hearbeatEndpoint)
         {
             SubscriptionEndpoint = subscriptionEndpoint;
-            HearbeatEndpoint = hearbeatEndpoint;
+            HeartbeatEndpoint = hearbeatEndpoint;
             StateOfTheWorldEndpoint = stateOfTheWorldEndpoint;
 
             StateCatchupTimeout = TimeSpan.FromSeconds(10);
@@ -20,6 +21,7 @@ namespace DynamicData.Cache
             ZmqHighWatermark = 1000;
 
             Subject = string.Empty;
+
         }
 
         public string Subject { get; set; }
@@ -28,8 +30,10 @@ namespace DynamicData.Cache
         public TimeSpan HeartbeatTimeout { get; set; }
         public TimeSpan StateCatchupTimeout { get; set; }
         public TimeSpan IsStaleTimeout { get; set; }
+
+        //todo : as url
         public string StateOfTheWorldEndpoint { get; set; }
         public string SubscriptionEndpoint { get; set; }
-        public string HearbeatEndpoint { get; set; }
+        public string HeartbeatEndpoint { get; set; }
     }
 }

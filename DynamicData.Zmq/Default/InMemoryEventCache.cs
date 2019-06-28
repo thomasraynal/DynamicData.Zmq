@@ -15,6 +15,7 @@ namespace DynamicData.Default
         private readonly IEventIdProvider _eventIdProvider;
         private readonly IEventSerializer _eventSerializer;
         private readonly ConcurrentDictionary<string, SortedList<long,IEventCacheItem>> _cache;
+        private readonly object _lock = new object();
 
         public InMemoryEventCache(IEventIdProvider eventIdProvider, IEventSerializer eventSerializer)
         {
@@ -33,11 +34,15 @@ namespace DynamicData.Default
                  return new SortedList<long, IEventCacheItem>();
              });
 
-            stream.Add(eventID.Version, new EventCacheItem()
+            //todo : should have a lock per streamId
+            lock (_lock)
             {
-                Message = payload,
-                EventId = eventID
-            });
+                stream.Add(eventID.Version, new EventCacheItem()
+                {
+                    Message = payload,
+                    EventId = eventID
+                });
+            }
 
             return Task.FromResult(eventID);
 
@@ -54,24 +59,9 @@ namespace DynamicData.Default
         {
             if (_cache.Count == 0) return Task.FromResult(Enumerable.Empty<IEventMessage>());
 
-            var items = _cache.Values.SelectMany(list=> list.Values).Select(cacheItem =>
+            lock (_lock)
             {
-                return new EventMessage()
-                {
-                    EventId = cacheItem.EventId,
-                    ProducerMessage = _eventSerializer.Serializer.Deserialize<ProducerMessage>(cacheItem.Message)
-                };
-
-            });
-
-            return Task.FromResult(items.Cast<IEventMessage>());
-        }
-
-        public Task<IEnumerable<IEventMessage>> GetStream(string streamId)
-        {
-            if (!_cache.ContainsKey(streamId)) return Task.FromResult(Enumerable.Empty<IEventMessage>());
-
-            var items = _cache[streamId].Values.Select(cacheItem =>
+                var items = _cache.Values.SelectMany(list => list.Values).Select(cacheItem =>
              {
                  return new EventMessage()
                  {
@@ -79,9 +69,37 @@ namespace DynamicData.Default
                      ProducerMessage = _eventSerializer.Serializer.Deserialize<ProducerMessage>(cacheItem.Message)
                  };
 
-             });
+             })
+             .Cast<IEventMessage>()
+             .ToList();
 
-            return Task.FromResult(items.Cast<IEventMessage>());
+                //AsEnumerable is important
+                return Task.FromResult(items.AsEnumerable());
+
+            }
+        }
+
+        public Task<IEnumerable<IEventMessage>> GetStream(string streamId)
+        {
+            if (!_cache.ContainsKey(streamId)) return Task.FromResult(Enumerable.Empty<IEventMessage>());
+
+            lock (_lock)
+            {
+                var items = _cache[streamId].Values.Select(cacheItem =>
+                 {
+                     return new EventMessage()
+                     {
+                         EventId = cacheItem.EventId,
+                         ProducerMessage = _eventSerializer.Serializer.Deserialize<ProducerMessage>(cacheItem.Message)
+                     };
+
+                 })
+               .Cast<IEventMessage>()
+               .ToList();
+
+                //AsEnumerable is important
+                return Task.FromResult(items.AsEnumerable());
+            }
         }
 
         public async Task<IEnumerable<IEventMessage>> GetStreamBySubject(string subject)
@@ -92,19 +110,26 @@ namespace DynamicData.Default
 
             if (!_cache.ContainsKey(streamId)) return Enumerable.Empty<IEventMessage>();
 
-            var items = _cache[streamId].Values
-                .Where(ev => ev.EventId.Subject.StartsWith(subject) || subject == string.Empty)
-                .Select(cacheItem =>
-                {
-                    return new EventMessage()
+            lock (_lock)
+            {
+                var items = _cache[streamId].Values
+                    .Where(ev => ev.EventId.Subject.StartsWith(subject) || subject == string.Empty)
+                    .Select(cacheItem =>
                     {
-                        EventId = cacheItem.EventId,
-                        ProducerMessage = _eventSerializer.Serializer.Deserialize<ProducerMessage>(cacheItem.Message)
-                    };
+                        return new EventMessage()
+                        {
+                            EventId = cacheItem.EventId,
+                            ProducerMessage = _eventSerializer.Serializer.Deserialize<ProducerMessage>(cacheItem.Message)
+                        };
 
-                });
+                    })
+                    .Cast<IEventMessage>()
+                    .ToList();
 
-            return items.Cast<IEventMessage>();
+                return items.AsEnumerable();
+            }
+
+
 
         }
     }
