@@ -79,9 +79,9 @@ namespace DynamicData.E2E
             return cache;
         }
 
-        public Market GetMarket(string marketName, IProducerConfiguration configuration, TimeSpan priceGenerationDelay)
+        public Market GetMarket(string marketName, IProducerConfiguration configuration, bool autogen, TimeSpan priceGenerationDelay)
         {
-            var market = new Market(marketName, configuration, _eventSerializer, priceGenerationDelay);
+            var market = new Market(marketName, configuration, _eventSerializer, priceGenerationDelay, autogen);
 
             _actors.Add(market);
 

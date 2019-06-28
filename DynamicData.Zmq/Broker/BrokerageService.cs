@@ -1,10 +1,8 @@
 ﻿using NetMQ;
 using NetMQ.Sockets;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using DynamicData.Broker;
 using DynamicData.Dto;
 using DynamicData.EventCache;
 using DynamicData.Serialization;
@@ -18,9 +16,9 @@ namespace DynamicData.Broker
 
         private readonly CancellationTokenSource _cancel;
 
-        private ConfiguredTaskAwaiter _workProc;
-        private ConfiguredTaskAwaiter _heartbeartProc;
-        private ConfiguredTaskAwaiter _stateOfTheWorldProc;
+        private Task _workProc;
+        private Task _heartbeatProc;
+        private Task _stateOfTheWorldProc;
 
         private NetMQPoller _workPoller;
         private NetMQPoller _heartbeatPoller;
@@ -41,18 +39,11 @@ namespace DynamicData.Broker
 
         protected override Task RunInternal()
         {
-            _workProc = Task.Run(HandleWork, _cancel.Token)
-                            .ConfigureAwait(false)
-                            .GetAwaiter();
+            _workProc = Task.Run(HandleWork, _cancel.Token);
 
-            _heartbeartProc = Task.Run(HandleHeartbeat, _cancel.Token)
-                                  .ConfigureAwait(false)
-                                  .GetAwaiter();
+            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token);
 
-
-            _stateOfTheWorldProc = Task.Run(HandleStateOfTheWorldRequest, _cancel.Token)
-                                       .ConfigureAwait(false)
-                                       .GetAwaiter();
+            _stateOfTheWorldProc = Task.Run(HandleStateOfTheWorldRequest, _cancel.Token);
 
             return Task.CompletedTask;
         }
@@ -65,10 +56,7 @@ namespace DynamicData.Broker
             _heartbeatPoller.Stop();
             _stateRequestPoller.Stop();
 
-            while (!_stateOfTheWorldProc.IsCompleted || !_workProc.IsCompleted || !_heartbeartProc.IsCompleted)
-            {
-                await Task.Delay(50);
-            }
+            await WaitForWorkProceduresToComplete(_stateOfTheWorldProc, _workProc, _heartbeatProc);
 
         }
 

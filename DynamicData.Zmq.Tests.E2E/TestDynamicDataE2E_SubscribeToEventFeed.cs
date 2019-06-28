@@ -34,8 +34,8 @@ namespace DynamicData.E2E
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(1000));
-            var market2 = GetMarket("Harmony", marketConfiguration, TimeSpan.FromMilliseconds(1000));
+            var market1 = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(1000));
+            var market2 = GetMarket("Harmony", marketConfiguration, true, TimeSpan.FromMilliseconds(1000));
 
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
@@ -58,7 +58,7 @@ namespace DynamicData.E2E
 
             var counter = 0;
 
-            var cleanup = cache.OnItemChanged()
+            var cleanup = cache.OnItemChanged
                                .Connect()
                                .Subscribe(changes =>
                                {
@@ -71,11 +71,11 @@ namespace DynamicData.E2E
 
             await WaitForCachesToCaughtUp(cache);
 
-            var eventCacheItems = cache.GetItems().SelectMany(item => item.AppliedEvents).ToList();
+            var eventCacheItems = cache.Items.SelectMany(item => item.AppliedEvents).ToList();
 
             Assert.AreEqual(eventCacheItems.Count(), counter);
 
-            var markets = cache.GetItems()
+            var markets = cache.Items
                                     .SelectMany(item => item.AppliedEvents)
                                     .Cast<ChangeCcyPairPrice>()
                                     .Select(ev => ev.Market)

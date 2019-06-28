@@ -1,12 +1,10 @@
-﻿using DynamicData;
-using NetMQ;
+﻿using NetMQ;
 using NetMQ.Sockets;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using DynamicData.Dto;
@@ -14,7 +12,6 @@ using DynamicData.Event;
 using DynamicData.EventCache;
 using DynamicData.Shared;
 using System.Reactive.Disposables;
-using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace DynamicData.Cache
 {
@@ -24,14 +21,17 @@ namespace DynamicData.Cache
         private readonly IDynamicCacheConfiguration _configuration;
         private readonly CancellationTokenSource _cancel;
 
-        private CompositeDisposable _cleanup;
-        private ConfiguredTaskAwaiter _workProc;
-        private ConfiguredTaskAwaiter _heartbeatProc;
+        private readonly CompositeDisposable _cleanup;
+
+        private Task _workProc;
+        private Task _heartbeatProc;
+
         private NetMQPoller _cacheUpdatePoller;
+        private NetMQPoller _heartbeatPoller;
+
         private readonly BehaviorSubject<DynamicCacheState> _state;
         private readonly BehaviorSubject<bool> _isStaled;
-      
-       // private SubscriberSocket _cacheUpdateSocket;
+
         private readonly IEventSerializer _eventSerializer;
 
         private readonly BehaviorSubject<bool> _isCaughtingUp;
@@ -57,37 +57,14 @@ namespace DynamicData.Cache
 
         }
 
-        public IObservable<DynamicCacheState> OnStateChanged()
-        {
-            return _state.AsObservable();
-        }
-
-        public IObservableCache<TAggregate, TKey> OnItemChanged()
-        {
-            return _sourceCache.AsObservableCache();
-        }
-
-        public DynamicCacheState CacheState
-        {
-            get
-            {
-                return _state.Value;
-            }
-        }
-
-        public IObservable<bool> OnStaled()
-        {
-            return _isStaled.AsObservable();
-        }
+        public IObservable<DynamicCacheState> OnStateChanged => _state.AsObservable();
+        public DynamicCacheState CacheState => _state.Value;
+        public IObservable<bool> OnStaled => _isStaled.AsObservable();
+        public IObservableCache<TAggregate, TKey> OnItemChanged => _sourceCache.AsObservableCache();
         public bool IsStaled => _isStaled.Value;
-
-        public IObservable<bool> OnCaughtingUp()
-        {
-            return _isCaughtingUp.AsObservable();
-        }
+        public IObservable<bool> OnCaughtingUp => _isCaughtingUp.AsObservable();
         public bool IsCaughtingUp => _isCaughtingUp.Value;
-
-        public IEnumerable<TAggregate> GetItems() => _sourceCache.Items;
+        public IEnumerable<TAggregate> Items => _sourceCache.Items;
 
         private IStateReply GetStateOfTheWorld()
         {
@@ -113,52 +90,70 @@ namespace DynamicData.Cache
             }
         }
 
-        //todo: use timer & poller
         private void HandleHeartbeat()
         {
-            while (!_cancel.IsCancellationRequested)
+
+            var heartbeatTimer = new NetMQTimer(_configuration.HeartbeatDelay);
+
+            using (_heartbeatPoller = new NetMQPoller { heartbeatTimer })
             {
-                using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
+                var runHeartBeat = new Action(() =>
                 {
-                    var payload = _eventSerializer.Serializer.Serialize(Heartbeat.Query); 
-
-                    heartbeat.SendFrame(payload);
-
-                    var response = heartbeat.TryReceiveFrameBytes(_configuration.HeartbeatDelay, out var responseBytes);
-
                     if (_cancel.IsCancellationRequested) return;
 
-                    var currentState = response ? DynamicCacheState.Connected : DynamicCacheState.Disconnected;
-
-                    switch (currentState)
+                    //todo: handle zombie socket
+                    using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
                     {
-                        case DynamicCacheState.Connected:
 
-                            if (_state.Value == DynamicCacheState.NotConnected || _state.Value == DynamicCacheState.Reconnected)
-                            {
-                                _state.OnNext(currentState);
-                            }
-                            else if (_state.Value == DynamicCacheState.Disconnected)
-                            {
-                                _state.OnNext(DynamicCacheState.Reconnected);
-                            }
-                               
-                            break;
+                        var payload = _eventSerializer.Serializer.Serialize(Heartbeat.Query);
 
-                        case DynamicCacheState.Disconnected:
-                            if (_state.Value == DynamicCacheState.Connected || _state.Value == DynamicCacheState.Reconnected)
-                            {
-                                _state.OnNext(currentState);
-                            }
-                               
-                            break;
+                        heartbeat.SendFrame(payload);
+
+                        var hasResponse = heartbeat.TryReceiveFrameBytes(_configuration.HeartbeatDelay, out var responseBytes);
+
+                        if (_cancel.IsCancellationRequested) return;
+
+                        var currentState = hasResponse ? DynamicCacheState.Connected : DynamicCacheState.Disconnected;
+
+                        switch (currentState)
+                        {
+                            case DynamicCacheState.Connected:
+
+                                if (_state.Value == DynamicCacheState.NotConnected || _state.Value == DynamicCacheState.Reconnected)
+                                {
+                                    _state.OnNext(currentState);
+                                }
+                                else if (_state.Value == DynamicCacheState.Disconnected)
+                                {
+                                    _state.OnNext(DynamicCacheState.Reconnected);
+                                }
+
+                                break;
+
+                            case DynamicCacheState.Disconnected:
+
+                                if (_state.Value == DynamicCacheState.Connected || _state.Value == DynamicCacheState.Reconnected)
+                                {
+                                    _state.OnNext(currentState);
+                                }
+
+                                break;
+                        }
                     }
+                });
 
-                }
+                heartbeatTimer.Elapsed += (s, e) =>
+                {
+                    runHeartBeat();
+                };
 
-                Thread.Sleep(_configuration.HeartbeatDelay.Milliseconds);
+                //hearbeat at once
+                runHeartBeat();
+
+                _heartbeatPoller.Run();
 
             }
+
         }
 
         private void HandleWork()
@@ -263,13 +258,13 @@ namespace DynamicData.Cache
 
         private void CaughtUpToStateOfTheWorld()
         {
-            //failover policy
+            //todo: failover policy
             while (CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
             {
                 if (_cancel.IsCancellationRequested) return;
 
                 //todo: log attempt
-                Thread.Sleep(100);
+                Task.Delay(100);
             }
 
             _sourceCache.Edit((updater) =>
@@ -348,24 +343,21 @@ namespace DynamicData.Cache
 
             _cleanup.Add(observeCacheState);
 
-            //start caughtingup by fetching the broker state of the world
+            //start caughting up by fetching the broker state of the world
             var caughtingUpState = _isCaughtingUp
                 .Where(state => state)
                 .Subscribe(_ =>
                 {
                     //run on new Task as CaughtUpToStateOfTheWorld is blocking
+                    //todo : handle cancel
                     Task.Run(CaughtUpToStateOfTheWorld);
                 });
 
             _cleanup.Add(caughtingUpState);
 
-            _workProc = Task.Run(HandleWork, _cancel.Token)
-                            .ConfigureAwait(false)
-                            .GetAwaiter();
+            _workProc = Task.Run(HandleWork, _cancel.Token);
 
-            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token)
-                                 .ConfigureAwait(false)
-                                 .GetAwaiter();
+            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token);
 
             _isCaughtingUp.OnNext(true);
 
@@ -385,11 +377,10 @@ namespace DynamicData.Cache
             _sourceCache.Dispose();
 
             _cacheUpdatePoller.Stop();
+            _heartbeatPoller.Stop();
 
-            while (!_workProc.IsCompleted || !_heartbeatProc.IsCompleted)
-            {
-               await Task.Delay(50);
-            }
+            await WaitForWorkProceduresToComplete(_workProc, _heartbeatProc);
+
         }
     }
 }

@@ -31,7 +31,7 @@ namespace DynamicData.E2E
                 HearbeatEndpoint = HeartbeatEndpoint
             };
 
-            var market = GetMarket("FxConnect", marketConfiguration,TimeSpan.FromMilliseconds(20));
+            var market = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(20));
 
             await router.Run();
             await market.Run();
@@ -51,7 +51,7 @@ namespace DynamicData.E2E
 
             await WaitForCachesToCaughtUp(cache);
 
-            var cacheItemsEvents = cache.GetItems()
+            var cacheItemsEvents = cache.Items
                                         .SelectMany(items=> items.AppliedEvents)
                                         .ToList();
 

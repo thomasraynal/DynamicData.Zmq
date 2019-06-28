@@ -7,13 +7,13 @@ namespace DynamicData.Cache
 {
     public interface IDynamicCache<TKey, TAggregate> : IActor where TAggregate : IAggregate<TKey>
     {
-        IObservableCache<TAggregate, TKey> OnItemChanged();
-        IEnumerable<TAggregate> GetItems();
-        IObservable<DynamicCacheState> OnStateChanged();
+        IObservableCache<TAggregate, TKey> OnItemChanged { get; }
+        IEnumerable<TAggregate> Items { get; }
+        IObservable<DynamicCacheState> OnStateChanged { get; }
         DynamicCacheState CacheState { get; }
-        IObservable<bool> OnStaled();
+        IObservable<bool> OnStaled { get; }
         bool IsStaled { get; }
-        IObservable<bool> OnCaughtingUp();
+        IObservable<bool> OnCaughtingUp { get; }
         bool IsCaughtingUp { get; }
     }
 }

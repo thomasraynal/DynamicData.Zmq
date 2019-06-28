@@ -41,12 +41,12 @@ namespace DynamicData.E2E
             };
 
             var router = GetBrokerageService(brokerConfiguration);
-            var market = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(1000));
+            var market = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(1000));
             var cache =  GetCache(cacheConfiguration);
 
             var cacheStates = new List<DynamicCacheState>();
 
-            var stateObservable = cache.OnStateChanged()
+            var stateObservable = cache.OnStateChanged
                                        .Subscribe(state =>
                                        {
                                            cacheStates.Add(state);

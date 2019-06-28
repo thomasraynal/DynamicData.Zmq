@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using DynamicData.Broker;
 using DynamicData.Dto;
 using DynamicData.Event;
 using DynamicData.EventCache;
-using DynamicData.Shared;
 
 namespace DynamicData.Default
 {

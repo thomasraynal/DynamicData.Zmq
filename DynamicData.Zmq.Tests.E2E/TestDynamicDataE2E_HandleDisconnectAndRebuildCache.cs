@@ -34,7 +34,7 @@ namespace DynamicData.E2E
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(1000));
+            var market1 = GetMarket("FxConnect", marketConfiguration, false, TimeSpan.MinValue);
 
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
@@ -47,22 +47,26 @@ namespace DynamicData.E2E
             var cacheProof = GetCache(cacheConfiguration);
 
             await router.Run();
-
             await market1.Run();
-
             await cache.Run();
             await cacheProof.Run();
 
             Assert.AreEqual(DynamicCacheState.NotConnected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.NotConnected, cacheProof.CacheState);
 
+            await Task.Delay(1000);
+
+            market1.PublishNext();
+            market1.PublishNext();
+            market1.PublishNext();
+
             await WaitForCachesToCaughtUp(cache, cacheProof);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.Connected, cacheProof.CacheState);
 
-            var cacheEvents = cache.GetItems().SelectMany(item => item.AppliedEvents).ToList();
-            var cacheProofEvents = cacheProof.GetItems().SelectMany(item => item.AppliedEvents).ToList();
+            var cacheEvents = cache.Items.SelectMany(item => item.AppliedEvents).ToList();
+            var cacheProofEvents = cacheProof.Items.SelectMany(item => item.AppliedEvents).ToList();
 
             Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
 
@@ -79,13 +83,22 @@ namespace DynamicData.E2E
 
             await Task.Delay(1000);
 
+            market1.PublishNext();
+            market1.PublishNext();
+            market1.PublishNext();
+
             await WaitForCachesToCaughtUp(cache, cacheProof);
+
+            Assert.AreEqual(DynamicCacheState.Reconnected, cache.CacheState);
+            Assert.AreEqual(DynamicCacheState.Reconnected, cacheProof.CacheState);
+
+            await Task.Delay(1000);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
             Assert.AreEqual(DynamicCacheState.Connected, cacheProof.CacheState);
 
-            var cacheCCyPair = cache.GetItems().ToList();
-            var cacheProofCcyPair = cacheProof.GetItems().ToList();
+            var cacheCCyPair = cache.Items.ToList();
+            var cacheProofCcyPair = cacheProof.Items.ToList();
 
             Assert.AreEqual(cacheCCyPair.Count(), cacheProofCcyPair.Count());
             Assert.AreEqual(cacheCCyPair.Count(), cacheProofCcyPair.Count());

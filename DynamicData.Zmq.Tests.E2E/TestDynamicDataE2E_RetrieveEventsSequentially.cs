@@ -41,8 +41,8 @@ namespace DynamicData.E2E
 
             var router = GetBrokerageService(brokerConfiguration);
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(1000));
-            var market2 = GetMarket("Harmony", marketConfiguration, TimeSpan.FromMilliseconds(1000));
+            var market1 = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(1000));
+            var market2 = GetMarket("Harmony", marketConfiguration, true, TimeSpan.FromMilliseconds(1000));
 
             var cache = GetCache(cacheConfiguration);
             var cacheProof = GetCache(cacheConfiguration);
@@ -59,7 +59,7 @@ namespace DynamicData.E2E
 
             await WaitForCachesToCaughtUp(cache, cacheProof);
 
-            var cacheEvents = cache.GetItems()
+            var cacheEvents = cache.Items
                                    .SelectMany(item => item.AppliedEvents)
                                    .Cast<IEvent<string, CurrencyPair>>()
                                    .GroupBy(ev => ev.EventStreamId)
@@ -76,7 +76,7 @@ namespace DynamicData.E2E
             }
 
 
-            var cacheProofEvents = cache.GetItems()
+            var cacheProofEvents = cache.Items
                        .SelectMany(item => item.AppliedEvents)
                        .Cast<IEvent<string, CurrencyPair>>()
                        .GroupBy(ev => ev.EventStreamId)

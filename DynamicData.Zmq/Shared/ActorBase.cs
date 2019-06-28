@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace DynamicData.Shared
 {
@@ -45,6 +47,18 @@ namespace DynamicData.Shared
             State = ActorState.Running;
 
             OnRunning?.Invoke();
+        }
+
+        protected async Task WaitForWorkProceduresToComplete(params Task[] tasks)
+        {
+            var isCompleted = tasks.All(task => task.IsCompleted);
+
+            while (!isCompleted)
+            {
+                isCompleted = tasks.All(task => task.IsCompleted);
+
+                await Task.Delay(100);
+            }
         }
 
         protected abstract Task DestroyInternal();

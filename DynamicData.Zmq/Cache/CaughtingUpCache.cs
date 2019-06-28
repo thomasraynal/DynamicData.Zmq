@@ -13,7 +13,7 @@ namespace DynamicData.Cache
             CaughtUpEvents = new List<IEvent<TKey, TAggregate>>();
         }
 
-        public List<IEvent<TKey, TAggregate>> CaughtUpEvents { get; set; }
+        public List<IEvent<TKey, TAggregate>> CaughtUpEvents { get; }
 
         public void Clear()
         {

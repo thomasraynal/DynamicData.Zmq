@@ -34,8 +34,8 @@ namespace DynamicData.E2E
                 HearbeatEndpoint = HeartbeatEndpoint
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(500));
-            var market2 = GetMarket("Harmony", marketConfiguration, TimeSpan.FromMilliseconds(500));
+            var market1 = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(500));
+            var market2 = GetMarket("Harmony", marketConfiguration, true, TimeSpan.FromMilliseconds(500));
 
             var cacheConfigurationEuroDol = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
@@ -68,13 +68,13 @@ namespace DynamicData.E2E
 
             Assert.Greater(routerEventCacheItems.Count(), 0);
 
-            var ccyPairsCacheEuroDol = cacheEuroDol.GetItems()
+            var ccyPairsCacheEuroDol = cacheEuroDol.Items
                                                    .SelectMany(item => item.AppliedEvents)
                                                    .Select(item => item.Subject)
                                                    .Distinct()
                                                    .ToList();
 
-            var ccyPairsCacheEuroDolFxConnect = cacheEuroDolFxConnect.GetItems()
+            var ccyPairsCacheEuroDolFxConnect = cacheEuroDolFxConnect.Items
                                                                      .SelectMany(item => item.AppliedEvents)
                                                                      .Select(item => item.Subject)
                                                                      .Distinct()
@@ -85,7 +85,7 @@ namespace DynamicData.E2E
             Assert.IsTrue(ccyPairsCacheEuroDol.All(subject => subject.EndsWith("FxConnect") || subject.EndsWith("Harmony")));
             Assert.IsTrue(ccyPairsCacheEuroDol.All(subject => subject.StartsWith(cacheConfigurationEuroDol.Subject)));
 
-            var cacheEvents = cacheEuroDol.GetItems()
+            var cacheEvents = cacheEuroDol.Items
                        .SelectMany(item => item.AppliedEvents)
                        .Cast<IEvent<string, CurrencyPair>>()
                        .GroupBy(ev => ev.EventStreamId)

@@ -16,32 +16,43 @@ namespace DynamicData.Demo
 
         private readonly string _name;
         private readonly CancellationTokenSource _cancel;
-        private ConfiguredTaskAwaitable _workProc;
+        private Task _workProc;
         private readonly Random _rand = new Random();
         private readonly TimeSpan _priceGenerationDelay;
 
         public List<ChangeCcyPairPrice> Prices { get; set; }
 
-        public Market(String name, IProducerConfiguration configuration, IEventSerializer eventSerializer, TimeSpan priceGenerationDelay) : base(configuration,eventSerializer)
+        public Market(String name, IProducerConfiguration configuration, IEventSerializer eventSerializer, TimeSpan priceGenerationDelay, bool autoGen= true) : base(configuration,eventSerializer)
         {
-            _priceGenerationDelay = priceGenerationDelay;
+         
             _name = name;
             _cancel = new CancellationTokenSource();
 
+            _priceGenerationDelay = priceGenerationDelay;
+
             Prices = new List<ChangeCcyPairPrice>();
 
-            OnDestroyed += () =>
+            OnDestroyed += async () =>
             {
                 _cancel.Cancel();
+                await this.WaitForWorkProceduresToComplete(_workProc);
             };
 
             OnRunning += () =>
             {
-                _workProc = Task.Run(HandleWork, _cancel.Token).ConfigureAwait(false);
+                if (autoGen)
+                {
+                    _workProc = Task.Run(HandleWork, _cancel.Token);
+                }
+                else
+                {
+                    _workProc = Task.CompletedTask;
+                }
+                  
             };
 
         }
-        private ChangeCcyPairPrice Next()
+        public ChangeCcyPairPrice Next()
         {
             var mid = _rand.NextDouble() * 10;
             var spread = _rand.NextDouble() * 2;
@@ -60,10 +71,17 @@ namespace DynamicData.Demo
             return price;
         }
 
+        public void PublishNext()
+        {
+            Publish(Next());
+        }
+
+
         private void HandleWork()
         {
             while (!_cancel.IsCancellationRequested)
             {
+  
                 Thread.Sleep(_priceGenerationDelay);
 
                 if (_cancel.IsCancellationRequested) return;
@@ -72,11 +90,8 @@ namespace DynamicData.Demo
                 {
                     var changePrice = Next();
 
-               
                         Publish(changePrice);
                         Prices.Add(changePrice);
-                    
-             
                 }
             }
         }

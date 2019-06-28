@@ -3,7 +3,6 @@ using NetMQ.Sockets;
 using System;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using DynamicData.Dto;
@@ -20,8 +19,9 @@ namespace DynamicData.Producer
         private readonly IProducerConfiguration _configuration;
         private readonly CancellationTokenSource _cancel;
         private readonly BehaviorSubject<ProducerState> _state;
-        private ConfiguredTaskAwaiter _heartbeatProc;
+        private Task _heartbeatProc;
         private PublisherSocket _publisherSocket;
+        private NetMQPoller _heartbeatPoller;
 
         public ProducerState ProducerState
         {
@@ -47,14 +47,9 @@ namespace DynamicData.Producer
 
         protected override Task RunInternal()
         {
-          
             _publisherSocket = new PublisherSocket();
             _publisherSocket.Connect(_configuration.RouterEndpoint);
-
-            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token)
-                                 .ConfigureAwait(false)
-                                 .GetAwaiter();
-
+            _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token);
 
             return Task.CompletedTask;
         }
@@ -69,61 +64,78 @@ namespace DynamicData.Producer
             _publisherSocket.Close();
             _publisherSocket.Dispose();
 
+            _heartbeatPoller.Stop();
 
-            while (!_heartbeatProc.IsCompleted)
-            {
-                await Task.Delay(100);
-            }
+            await WaitForWorkProceduresToComplete(_heartbeatProc);
 
         }
 
+        //todo : actor IHeartbeatChecker IHeartbeatHandler 
         private void HandleHeartbeat()
         {
-            while (!_cancel.IsCancellationRequested)
+            var heartbeatTimer = new NetMQTimer(_configuration.HeartbeatDelay);
+
+            using (_heartbeatPoller = new NetMQPoller { heartbeatTimer })
             {
-                //todo use timer & poller
-                using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
+
+                var runHeartBeat = new Action(() =>
                 {
-                    var query = _eventSerializer.Serializer.Serialize(Heartbeat.Query);
-
-                    heartbeat.SendFrame(query);
-
-                    var response = heartbeat.TryReceiveFrameBytes(_configuration.HeartbeatTimeout, out var responseBytes);
 
                     if (_cancel.IsCancellationRequested) return;
 
-                    var currentState = response ? ProducerState.Connected : ProducerState.Disconnected;
-
-                    switch (currentState)
+                    //todo: handle zombie socket
+                    using (var heartbeat = new RequestSocket(_configuration.HearbeatEndpoint))
                     {
-                        case ProducerState.Connected:
 
-                            if (_state.Value == ProducerState.NotConnected || _state.Value == ProducerState.Disconnected)
-                            {
-                                _state.OnNext(currentState);
-                            }
+                        var query = _eventSerializer.Serializer.Serialize(Heartbeat.Query);
 
-                            break;
+                        heartbeat.SendFrame(query);
 
-                        case ProducerState.Disconnected:
+                        var response = heartbeat.TryReceiveFrameBytes(_configuration.HeartbeatTimeout, out var responseBytes);
 
-                            if (_state.Value == ProducerState.Connected)
-                            {
-                                _state.OnNext(currentState);
-                            }
+                        if (_cancel.IsCancellationRequested) return;
 
-                            break;
+                        var currentState = response ? ProducerState.Connected : ProducerState.Disconnected;
+
+                        switch (currentState)
+                        {
+                            case ProducerState.Connected:
+
+                                if (_state.Value == ProducerState.NotConnected || _state.Value == ProducerState.Disconnected)
+                                {
+                                    _state.OnNext(currentState);
+                                }
+
+                                break;
+
+                            case ProducerState.Disconnected:
+
+                                if (_state.Value == ProducerState.Connected)
+                                {
+                                    _state.OnNext(currentState);
+                                }
+
+                                break;
+                        }
                     }
+                });
 
-                    Thread.Sleep(_configuration.HeartbeatDelay.Milliseconds);
+                heartbeatTimer.Elapsed += (s, e) =>
+                {
+                    runHeartBeat();
+                };
 
-                }
+                //hearbeat at once
+                runHeartBeat();
+
+                _heartbeatPoller.Run();
+
             }
         }
 
-        public void Publish(IEvent<TKey,TAggregate> @event)
+        public void Publish(IEvent<TKey, TAggregate> @event)
         {
-            if(_state.Value != ProducerState.Connected) throw new InvalidOperationException("publisher is not connected");
+            if (_state.Value != ProducerState.Connected) throw new InvalidOperationException("publisher is not connected");
 
             var message = _eventSerializer.ToProducerMessage(@event);
 

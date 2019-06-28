@@ -36,8 +36,8 @@ namespace DynamicData.E2E
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, TimeSpan.FromMilliseconds(100));
-            var market2 = GetMarket("Harmony", marketConfiguration, TimeSpan.FromMilliseconds(100));
+            var market1 = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(100));
+            var market2 = GetMarket("Harmony", marketConfiguration, true, TimeSpan.FromMilliseconds(100));
 
             await router.Run();
 
@@ -61,7 +61,7 @@ namespace DynamicData.E2E
 
             await WaitForCachesToCaughtUp(cache);
 
-            var cacheEvents = cache.GetItems()
+            var cacheEvents = cache.Items
                        .SelectMany(item => item.AppliedEvents)
                        .Cast<IEvent<string, CurrencyPair>>()
                        .GroupBy(ev => ev.EventStreamId)
