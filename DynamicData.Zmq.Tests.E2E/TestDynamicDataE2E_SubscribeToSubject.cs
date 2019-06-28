@@ -8,7 +8,7 @@ using DynamicData.Demo;
 using DynamicData.Event;
 using DynamicData.Producer;
 
-namespace DynamicData.E2E
+namespace DynamicData.Tests.E2E
 {
     [TestFixture]
     public class TestDynamicDataE2E_SubscribeToSubject : TestDynamicDataE2E_Base
@@ -30,7 +30,7 @@ namespace DynamicData.E2E
 
             var marketConfiguration = new ProducerConfiguration()
             {
-                RouterEndpoint = ToPublishersEndpoint,
+                BrokerEndpoint = ToPublishersEndpoint,
                 HeartbeatEndpoint = HeartbeatEndpoint
             };
 

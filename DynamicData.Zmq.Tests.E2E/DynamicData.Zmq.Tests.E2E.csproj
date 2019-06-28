@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DynamicData.Zmq.Demo\DynamicData.Zmq.Demo.csproj" />
+    <ProjectReference Include="..\DynamicData.Zmq.Tests\DynamicData.Zmq.Tests.csproj" />
   </ItemGroup>
 
 

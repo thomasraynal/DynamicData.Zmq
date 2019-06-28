@@ -16,9 +16,9 @@ using DynamicData.EventCache;
 using DynamicData.Producer;
 using DynamicData.Shared;
 
-namespace DynamicData.E2E
+namespace DynamicData.Tests.E2E
 {
-   [TestFixture]
+    [TestFixture]
     public abstract class TestDynamicDataE2E_Base
     {
         public readonly string ToPublishersEndpoint = "tcp://localhost:8080";
@@ -72,7 +72,7 @@ namespace DynamicData.E2E
 
         public DynamicCache<string, CurrencyPair> GetCache(IDynamicCacheConfiguration configuration)
         {
-            var cache = new DynamicCache<string, CurrencyPair>(configuration, _eventSerializer);
+            var cache = new DynamicCache<string, CurrencyPair>(configuration, LoggerForTests.Default, _eventSerializer);
 
             _actors.Add(cache);
 

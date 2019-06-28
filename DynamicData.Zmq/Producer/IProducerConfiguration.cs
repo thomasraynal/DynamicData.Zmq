@@ -3,8 +3,8 @@ using DynamicData.Shared;
 
 namespace DynamicData.Producer
 {
-    public interface IProducerConfiguration : IHeartbeatChecker
+    public interface IProducerConfiguration : ICanCheckHeartbeatConfiguration
     {
-        string RouterEndpoint { get; set; }
+        string BrokerEndpoint { get; set; }
     }
 }

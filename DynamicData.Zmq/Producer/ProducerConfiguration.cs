@@ -12,7 +12,7 @@ namespace DynamicData.Producer
             HeartbeatTimeout = TimeSpan.FromSeconds(1);
         }
 
-        public string RouterEndpoint { get; set; }
+        public string BrokerEndpoint { get; set; }
         public string HeartbeatEndpoint { get; set; }
         public TimeSpan HeartbeatDelay { get; set; }
         public TimeSpan HeartbeatTimeout { get; set; }

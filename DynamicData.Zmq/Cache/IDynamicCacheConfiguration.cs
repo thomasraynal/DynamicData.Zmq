@@ -3,7 +3,7 @@ using DynamicData.Shared;
 
 namespace DynamicData.Cache
 {
-    public interface IDynamicCacheConfiguration : IHeartbeatChecker
+    public interface IDynamicCacheConfiguration : ICanCheckHeartbeatConfiguration
     {
         TimeSpan IsStaleTimeout { get; set; }
         TimeSpan StateCatchupTimeout { get; set; }

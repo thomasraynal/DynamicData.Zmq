@@ -7,7 +7,7 @@ using DynamicData.Broker;
 using DynamicData.Cache;
 using DynamicData.Producer;
 
-namespace DynamicData.E2E
+namespace DynamicData.Tests.E2E
 {
     [TestFixture]
     public class TestDynamicDataE2E_ConnectAndDisconnectFromBroker: TestDynamicDataE2E_Base
@@ -27,7 +27,7 @@ namespace DynamicData.E2E
 
             var marketConfiguration = new ProducerConfiguration()
             {
-                RouterEndpoint = ToPublishersEndpoint,
+                BrokerEndpoint = ToPublishersEndpoint,
                 HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromMilliseconds(500),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)

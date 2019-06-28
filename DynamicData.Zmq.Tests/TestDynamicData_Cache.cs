@@ -15,6 +15,7 @@ using DynamicData.Event;
 using DynamicData.EventCache;
 using DynamicData.Producer;
 using DynamicData.Cache;
+using DynamicData.Tests;
 
 namespace DynamicData.Zmq.Tests
 {
@@ -220,7 +221,7 @@ namespace DynamicData.Zmq.Tests
                 StateCatchupTimeout = TimeSpan.FromMilliseconds(500)
             };
 
-            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, LoggerForTests.Default, _eventSerializer);
 
             await cache.Run();
 
@@ -260,7 +261,7 @@ namespace DynamicData.Zmq.Tests
                     HeartbeatTimeout = TimeSpan.FromSeconds(1)
                 };
 
-                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, LoggerForTests.Default, _eventSerializer);
 
                 await cache.Run();
 
@@ -318,7 +319,7 @@ namespace DynamicData.Zmq.Tests
                     IsStaleTimeout = TimeSpan.FromSeconds(2)
                 };
 
-                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, LoggerForTests.Default, _eventSerializer);
 
                 await cache.Run();
 
@@ -368,7 +369,7 @@ namespace DynamicData.Zmq.Tests
 
             var marketConfiguration = new ProducerConfiguration()
             {
-                RouterEndpoint = ToPublishersEndpoint,
+                BrokerEndpoint = ToPublishersEndpoint,
                 HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromSeconds(1),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
@@ -413,7 +414,7 @@ namespace DynamicData.Zmq.Tests
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration,LoggerForTests.Default, _eventSerializer);
 
             await cache.Run();
 
@@ -465,7 +466,7 @@ namespace DynamicData.Zmq.Tests
                     HeartbeatTimeout = TimeSpan.FromSeconds(1),
                 };
 
-                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, LoggerForTests.Default, _eventSerializer);
 
                 await cache.Run();
 
@@ -544,8 +545,8 @@ namespace DynamicData.Zmq.Tests
                     HeartbeatTimeout = TimeSpan.FromSeconds(1),
                 };
 
-                var cacheEuroDol = new DynamicCache<string, CurrencyPair>(cacheConfigurationEuroDol, _eventSerializer);
-                var cacheAll = new DynamicCache<string, CurrencyPair>(cacheConfigurationAll, _eventSerializer);
+                var cacheEuroDol = new DynamicCache<string, CurrencyPair>(cacheConfigurationEuroDol, LoggerForTests.Default, _eventSerializer);
+                var cacheAll = new DynamicCache<string, CurrencyPair>(cacheConfigurationAll, LoggerForTests.Default, _eventSerializer);
 
                 await cacheEuroDol.Run();
                 await cacheAll.Run();
@@ -619,7 +620,7 @@ namespace DynamicData.Zmq.Tests
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+            var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, LoggerForTests.Default, _eventSerializer);
 
             await cache.Run();
 
@@ -710,7 +711,7 @@ namespace DynamicData.Zmq.Tests
                     HeartbeatTimeout = TimeSpan.FromSeconds(1),
                 };
 
-                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, _eventSerializer);
+                var cache = new DynamicCache<string, CurrencyPair>(cacheConfiguration, LoggerForTests.Default, _eventSerializer);
 
                 await cache.Run();
 

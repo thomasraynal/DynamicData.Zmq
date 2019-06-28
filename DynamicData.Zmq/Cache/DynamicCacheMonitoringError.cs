@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using DynamicData.Cache;
+using System;
 
 namespace DynamicData.Cache
 {
@@ -8,5 +7,12 @@ namespace DynamicData.Cache
     {
         public DynamicCacheErrorType CacheErrorStatus { get; internal set; }
         public Exception Exception { get; internal set; }
+
+        public string Message => $"{CacheErrorStatus} - {Exception.Message}";
+
+        public override string ToString()
+        {
+            return Message;
+        }
     }
 }

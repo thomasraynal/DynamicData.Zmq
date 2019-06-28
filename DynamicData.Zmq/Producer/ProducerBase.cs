@@ -48,7 +48,7 @@ namespace DynamicData.Producer
         protected override Task RunInternal()
         {
             _publisherSocket = new PublisherSocket();
-            _publisherSocket.Connect(_configuration.RouterEndpoint);
+            _publisherSocket.Connect(_configuration.BrokerEndpoint);
             _heartbeatProc = Task.Run(HandleHeartbeat, _cancel.Token);
 
             return Task.CompletedTask;

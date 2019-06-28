@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace DynamicData.Shared
 {
@@ -28,7 +25,6 @@ namespace DynamicData.Shared
         public async Task Destroy()
         {
             if (State == ActorState.Destroyed) throw new InvalidOperationException("actor is already destroyed");
-           // if (State == ActorState.Ready) throw new InvalidOperationException("actor must first be started");
 
             await DestroyInternal();
 
