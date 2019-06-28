@@ -1,46 +1,45 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using DynamicData.Event;
 using DynamicData.Producer;
+using Microsoft.Extensions.Logging;
 
 namespace DynamicData.Demo
 {
-    public class Market : ProducerBase<string,CurrencyPair>
+    public class Market : ProducerBase<string, CurrencyPair>
     {
 
         private static readonly string[] CcyPairs = { "EUR/USD", "EUR/GBP" };
 
-        private readonly string _name;
         private readonly CancellationTokenSource _cancel;
         private Task _workProc;
         private readonly Random _rand = new Random();
-        private readonly TimeSpan _priceGenerationDelay;
+
+        private readonly MarketConfiguration _configuration;
 
         public List<ChangeCcyPairPrice> Prices { get; set; }
 
-        public Market(String name, IProducerConfiguration configuration, IEventSerializer eventSerializer, TimeSpan priceGenerationDelay, bool autoGen= true) : base(configuration,eventSerializer)
+        public Market(MarketConfiguration configuration, ILogger<IProducer<string, CurrencyPair>> logger, IEventSerializer eventSerializer) : base(configuration, logger, eventSerializer)
         {
-         
-            _name = name;
+
             _cancel = new CancellationTokenSource();
 
-            _priceGenerationDelay = priceGenerationDelay;
+            _configuration = configuration;
 
             Prices = new List<ChangeCcyPairPrice>();
 
             OnDestroyed += async () =>
             {
                 _cancel.Cancel();
-                await this.WaitForWorkProceduresToComplete(_workProc);
+                await WaitForWorkProceduresToComplete(_workProc);
             };
 
             OnRunning += () =>
             {
-                if (autoGen)
+                if (_configuration.IsAutoGen)
                 {
                     _workProc = Task.Run(HandleWork, _cancel.Token);
                 }
@@ -48,7 +47,7 @@ namespace DynamicData.Demo
                 {
                     _workProc = Task.CompletedTask;
                 }
-                  
+
             };
 
         }
@@ -65,7 +64,7 @@ namespace DynamicData.Demo
                 mid: mid,
                 spread: spread,
                 ccyPairId: topic,
-                market: _name
+                market: _configuration.Name
             );
 
             return price;
@@ -76,13 +75,22 @@ namespace DynamicData.Demo
             Publish(Next());
         }
 
+        public async Task WaitUntilConnected()
+        {
+            for (var i = 0; i < 5; i++)
+            {
+                await Task.Delay(500);
+                if (ProducerState == ProducerState.Connected) return;
+            }
+
+        }
 
         private void HandleWork()
         {
             while (!_cancel.IsCancellationRequested)
             {
-  
-                Thread.Sleep(_priceGenerationDelay);
+
+                Thread.Sleep(_configuration.PriceGenerationDelay);
 
                 if (_cancel.IsCancellationRequested) return;
 
@@ -90,8 +98,8 @@ namespace DynamicData.Demo
                 {
                     var changePrice = Next();
 
-                        Publish(changePrice);
-                        Prices.Add(changePrice);
+                    Publish(changePrice);
+                    Prices.Add(changePrice);
                 }
             }
         }

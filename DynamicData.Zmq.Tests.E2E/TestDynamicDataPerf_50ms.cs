@@ -11,13 +11,13 @@ using DynamicData.Producer;
 namespace DynamicData.Tests.E2E
 {
     [TestFixture]
-    public class TestDynamicDataE2E_RetrieveEventsSequentially : TestDynamicDataE2E_Base
+    public class TestDynamicDataPerf_50ms: TestDynamicDataE2E_Base
     {
 
         [Test]
-        public async Task ShouldRetrievedEventsSequentially()
+        public async Task ShouldCheckMaxPerformance()
         {
-    
+
             var brokerConfiguration = new BrokerageServiceConfiguration()
             {
                 HeartbeatEndpoint = HeartbeatEndpoint,
@@ -26,50 +26,59 @@ namespace DynamicData.Tests.E2E
                 ToPublisherEndpoint = ToPublishersEndpoint
             };
 
+            var router = GetBrokerageService(brokerConfiguration);
+
             var marketConfigurationFxConnect = new MarketConfiguration("FxConnect")
             {
                 BrokerEndpoint = ToPublishersEndpoint,
-                HeartbeatEndpoint = HeartbeatEndpoint
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                PriceGenerationDelay = TimeSpan.FromMilliseconds(50)
             };
 
             var marketConfigurationHarmony = new MarketConfiguration("Harmony")
             {
                 BrokerEndpoint = ToPublishersEndpoint,
-                HeartbeatEndpoint = HeartbeatEndpoint
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                PriceGenerationDelay = TimeSpan.FromMilliseconds(50)
             };
-
-            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
-            {
-                Subject = string.Empty,
-                HeartbeatDelay = TimeSpan.FromSeconds(10),
-                HeartbeatTimeout = TimeSpan.FromSeconds(2)
-            };
-
-            var router = GetBrokerageService(brokerConfiguration);
 
             var market1 = GetMarket(marketConfigurationFxConnect);
             var market2 = GetMarket(marketConfigurationHarmony);
 
-            var cache = GetCache(cacheConfiguration);
-            var cacheProof = GetCache(cacheConfiguration);
-
             await router.Run();
+
+            await Task.Delay(1000);
 
             await market1.Run();
             await market2.Run();
 
+            var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
+            {
+                Subject = string.Empty,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
+
+            var cache = GetCache(cacheConfiguration);
+
             await cache.Run();
-            await cacheProof.Run();
 
-            await Task.Delay(1000);
+            await Task.Delay(2000);
 
-            await WaitForCachesToCaughtUp(cache, cacheProof);
+            await WaitForCachesToCaughtUp(cache);
 
             var cacheEvents = cache.Items
-                                   .SelectMany(item => item.AppliedEvents)
-                                   .Cast<IEvent<string, CurrencyPair>>()
-                                   .GroupBy(ev => ev.EventStreamId)
-                                   .ToList();
+                       .SelectMany(item => item.AppliedEvents)
+                       .Cast<IEvent<string, CurrencyPair>>()
+                       .GroupBy(ev => ev.EventStreamId)
+                       .ToList();
+
+
+            Assert.Greater(cacheEvents.Count, 0);
 
             foreach (var grp in cacheEvents)
             {
@@ -81,25 +90,8 @@ namespace DynamicData.Tests.E2E
                 }
             }
 
-
-            var cacheProofEvents = cache.Items
-                       .SelectMany(item => item.AppliedEvents)
-                       .Cast<IEvent<string, CurrencyPair>>()
-                       .GroupBy(ev => ev.EventStreamId)
-                       .ToList();
-
-            foreach (var grp in cacheProofEvents)
-            {
-                var index = 0;
-
-                foreach (var ev in grp)
-                {
-                    Assert.AreEqual(index++, ev.Version);
-                }
-            }
-
-         
         }
+
 
     }
 }

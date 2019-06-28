@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,10 +13,13 @@ namespace DynamicData.Shared
         public delegate void OnActorDestroyed();
         public delegate void OnActorRunning();
 
-        public ActorBase()
+        private ILogger _logger;
+
+        public ActorBase(ILogger logger)
         {
             Id = Guid.NewGuid();
             State = ActorState.Ready;
+            _logger = logger;
         }
 
         public Guid Id { get; private set; }
@@ -31,6 +35,8 @@ namespace DynamicData.Shared
             State = ActorState.Destroyed;
 
             OnDestroyed?.Invoke();
+
+            _logger.LogInformation($"{this.GetType()} destroyed");
         }
 
         public async Task Run()
@@ -43,6 +49,8 @@ namespace DynamicData.Shared
             State = ActorState.Running;
 
             OnRunning?.Invoke();
+
+            _logger.LogInformation($"{this.GetType()} started");
         }
 
         protected async Task WaitForWorkProceduresToComplete(params Task[] tasks)

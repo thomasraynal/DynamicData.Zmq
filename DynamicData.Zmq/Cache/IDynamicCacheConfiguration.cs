@@ -7,9 +7,9 @@ namespace DynamicData.Cache
     {
         TimeSpan IsStaleTimeout { get; set; }
         TimeSpan StateCatchupTimeout { get; set; }
-        string StateOfTheWorldEndpoint { get; }
+        string StateOfTheWorldEndpoint { get; set; }
         string Subject { get; set; }
-        string SubscriptionEndpoint { get; }
+        string SubscriptionEndpoint { get; set; }
         int ZmqHighWatermark { get; set; }
     }
 }

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DynamicData.Broker;
 using DynamicData.Cache;
 using DynamicData.Producer;
+using DynamicData.Demo;
 
 namespace DynamicData.Tests.E2E
 {
@@ -18,20 +19,21 @@ namespace DynamicData.Tests.E2E
             var brokerConfiguration = new BrokerageServiceConfiguration()
             {
                 HeartbeatEndpoint = HeartbeatEndpoint,
-                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                StateOfTheWorldEndpoint = StateOfTheWorldEndpoint,
                 ToSubscribersEndpoint = ToSubscribersEndpoint,
                 ToPublisherEndpoint = ToPublishersEndpoint
             };
 
             var router = GetBrokerageService(brokerConfiguration);
 
-            var marketConfiguration = new ProducerConfiguration()
+            var marketConfiguration = new MarketConfiguration("FxConnect")
             {
                 BrokerEndpoint = ToPublishersEndpoint,
-                HeartbeatEndpoint = HeartbeatEndpoint
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                PriceGenerationDelay = TimeSpan.FromMilliseconds(20)
             };
 
-            var market = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(20));
+            var market = GetMarket(marketConfiguration);
 
             await router.Run();
             await market.Run();

@@ -5,9 +5,12 @@ using System.Text;
 
 namespace DynamicData.Tests
 {
-    public class LoggerForTests : ILogger
+    public class LoggerForTests<T> : ILogger<T>
     {
-        public static readonly ILogger Default = new LoggerForTests();
+        public static ILogger<T> Default()
+        {
+            return new LoggerForTests<T>();
+        }
 
         public IDisposable BeginScope<TState>(TState state)
         {

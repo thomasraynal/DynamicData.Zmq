@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using DynamicData.Broker;
 using DynamicData.Cache;
 using DynamicData.Producer;
+using DynamicData.Demo;
 
 namespace DynamicData.Tests.E2E
 {
@@ -19,22 +20,23 @@ namespace DynamicData.Tests.E2E
             var brokerConfiguration = new BrokerageServiceConfiguration()
             {
                 HeartbeatEndpoint = HeartbeatEndpoint,
-                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                StateOfTheWorldEndpoint = StateOfTheWorldEndpoint,
                 ToSubscribersEndpoint = ToSubscribersEndpoint,
                 ToPublisherEndpoint = ToPublishersEndpoint
             };
 
             var router = GetBrokerageService(brokerConfiguration);
           
-            var marketConfiguration = new ProducerConfiguration()
+            var marketConfiguration = new MarketConfiguration("FxConnect")
             {
                 BrokerEndpoint = ToPublishersEndpoint,
                 HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromSeconds(1),
-                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+                HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                IsAutoGen = false
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, false, TimeSpan.MinValue);
+            var market1 = GetMarket(marketConfiguration);
 
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
@@ -55,6 +57,11 @@ namespace DynamicData.Tests.E2E
             Assert.AreEqual(DynamicCacheState.NotConnected, cacheProof.CacheState);
 
             await Task.Delay(1000);
+
+            await market1.WaitUntilConnected();
+
+            Assert.AreEqual(ProducerState.Connected, market1.ProducerState);
+  
 
             market1.PublishNext();
             market1.PublishNext();

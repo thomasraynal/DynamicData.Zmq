@@ -6,12 +6,11 @@ using DynamicData.Broker;
 using DynamicData.Cache;
 using DynamicData.Demo;
 using DynamicData.Event;
-using DynamicData.Producer;
 
 namespace DynamicData.Tests.E2E
 {
     [TestFixture]
-    public class TestDynamicDataPerf_100ms: TestDynamicDataE2E_Base
+    public class TestDynamicDataPerf_100ms : TestDynamicDataE2E_Base
     {
 
         [Test]
@@ -21,23 +20,33 @@ namespace DynamicData.Tests.E2E
             var brokerConfiguration = new BrokerageServiceConfiguration()
             {
                 HeartbeatEndpoint = HeartbeatEndpoint,
-                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                StateOfTheWorldEndpoint = StateOfTheWorldEndpoint,
                 ToSubscribersEndpoint = ToSubscribersEndpoint,
                 ToPublisherEndpoint = ToPublishersEndpoint
             };
 
             var router = GetBrokerageService(brokerConfiguration);
 
-            var marketConfiguration = new ProducerConfiguration()
+            var marketConfigurationFxConnect = new MarketConfiguration("FxConnect")
             {
                 BrokerEndpoint = ToPublishersEndpoint,
                 HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromSeconds(1),
-                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+                HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                PriceGenerationDelay = TimeSpan.FromMilliseconds(100)
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(100));
-            var market2 = GetMarket("Harmony", marketConfiguration, true, TimeSpan.FromMilliseconds(100));
+            var marketConfigurationHarmony = new MarketConfiguration("Harmony")
+            {
+                BrokerEndpoint = ToPublishersEndpoint,
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1),
+                PriceGenerationDelay = TimeSpan.FromMilliseconds(50)
+            };
+
+            var market1 = GetMarket(marketConfigurationFxConnect);
+            var market2 = GetMarket(marketConfigurationHarmony);
 
             await router.Run();
 

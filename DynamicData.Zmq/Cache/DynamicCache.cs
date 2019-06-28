@@ -50,8 +50,9 @@ namespace DynamicData.Cache
 
         private readonly RetryPolicy _getStateOfTheWorldRetyPolicy;
 
-        public DynamicCache(IDynamicCacheConfiguration configuration, ILogger logger, IEventSerializer eventSerializer)
+        public DynamicCache(IDynamicCacheConfiguration configuration, ILogger<DynamicCache<TKey, TAggregate>> logger, IEventSerializer eventSerializer) : base(logger)
         {
+            //todo validate configuration
 
             _blockEventConsumption = new ManualResetEventSlim(true);
 
@@ -72,14 +73,45 @@ namespace DynamicData.Cache
 
             _getStateOfTheWorldRetyPolicy = Policy.Handle<Exception>()
                                                   .RetryForever((ex) =>
-                                                   {
-                                                       _cacheErrors.Add(new DynamicCacheMonitoringError()
-                                                       {
-                                                           CacheErrorStatus = DynamicCacheErrorType.GetStateOfTheWorldFailure,
-                                                           Exception = ex
-                                                       });
+                                                  {
+                                                      _cacheErrors.Add(new DynamicCacheMonitoringError()
+                                                      {
+                                                          CacheErrorStatus = DynamicCacheErrorType.GetStateOfTheWorldFailure,
+                                                          Exception = ex
+                                                      });
 
-                                                   });
+                                                  });
+
+
+            //on reconnected start try to caught up
+            _state.Where(state => state == DynamicCacheState.Reconnected)
+                    .Subscribe(state => _isCaughtingUp.OnNext(true))
+                    .Cleanup(_cleanup);
+
+
+            _state.Subscribe(state => _logger.LogInformation($"Cache state is {state}")).Cleanup(_cleanup);
+
+            //start caughting up by fetching the broker state of the world
+            _isCaughtingUp.Where(state => state)
+                          .Subscribe(_ =>_caughtUpWithStateOfTheWorldProc = Task.Run(()=>
+                          {
+                              WaitUntilConnected();
+
+                              WaitUntilCaughtUpToStateOfTheWorld();
+
+                          }, _cancel.Token))
+                          .Cleanup(_cleanup);
+
+            Observable.FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(e => Errors.CollectionChanged += e, e => Errors.CollectionChanged -= e)
+                      .Where(arg => arg.EventArgs.NewItems.Count > 0)
+                      .Subscribe(arg =>
+                      {
+                          foreach (var error in arg.EventArgs.NewItems.Cast<DynamicCacheMonitoringError>())
+                          {
+                              _logger.LogError(error.Message, error.Exception);
+                          }
+                      })
+                      .Cleanup(_cleanup);
 
         }
 
@@ -93,7 +125,7 @@ namespace DynamicData.Cache
         public IEnumerable<TAggregate> Items => _sourceCache.Items;
         public ObservableCollection<DynamicCacheMonitoringError> Errors => _cacheErrors;
 
-        private IStateReply GetStateOfTheWorld()
+        private Task<IStateReply> GetStateOfTheWorld()
         {
             var policyResult = _getStateOfTheWorldRetyPolicy.ExecuteAndCapture<IStateReply>(() =>
             {
@@ -117,7 +149,7 @@ namespace DynamicData.Cache
 
             });
 
-            return policyResult.Result;
+            return Task.FromResult(policyResult.Result);
 
         }
 
@@ -207,7 +239,7 @@ namespace DynamicData.Cache
                         {
                             _isStaled.OnNext(true);
                         }
-   
+
                         isSocketActive = false;
 
                     };
@@ -257,7 +289,7 @@ namespace DynamicData.Cache
             }
         }
 
-        private void ApplyEvent(IEvent<TKey, TAggregate> @event)
+        private void ApplyEvent(IEvent<TKey, TAggregate> @event, Action<TAggregate> apply)
         {
             var aggregate = _sourceCache.Lookup(@event.EventStreamId);
 
@@ -270,13 +302,13 @@ namespace DynamicData.Cache
 
                 @new.Apply(@event);
 
-                _sourceCache.AddOrUpdate(@new);
+                apply(@new);
             }
             else
             {
                 aggregate.Value.Apply(@event);
 
-                _sourceCache.AddOrUpdate(aggregate.Value);
+                apply(aggregate.Value);
             }
         }
 
@@ -291,84 +323,65 @@ namespace DynamicData.Cache
                 {
                     _caughtingUpCache.CaughtUpEvents.Add(@event);
                     return;
+
                 }
 
             }
 
-            ApplyEvent(@event);
+            ApplyEvent(@event, (aggregate) => _sourceCache.AddOrUpdate(aggregate));
         }
 
-        private void CaughtUpToStateOfTheWorld()
+        private void WaitUntilConnected()
         {
-            //no failover policy, Errors observable collection should be enough for monitoring purpose
+            _logger.LogInformation($"Try to caught up with state of the world");
+
             while (CacheState != DynamicCacheState.Connected && CacheState != DynamicCacheState.Reconnected)
             {
                 if (_cancel.IsCancellationRequested) return;
 
-                _logger.LogInformation($"Cache state is {CacheState} - unable to aught up with state of the world");
-
-               Thread.Sleep(100);
+                Thread.Sleep(100);
             }
+        }
 
-            //we got a connection, start updating to state of teh world
-            _sourceCache.Edit((updater) =>
+        private void WaitUntilCaughtUpToStateOfTheWorld()
+        {
+            _sourceCache.Edit(async (updater) =>
             {
                 updater.Clear();
 
-                //fetch state of the world
-                var stateOfTheWorld = GetStateOfTheWorld();
+                _logger.LogInformation($"Try to get state of the world");
 
-                var update = new Action<IEvent<TKey, TAggregate>>((@event) =>
-                {
-
-                    var aggregate = updater.Lookup(@event.EventStreamId);
-
-                    if (!aggregate.HasValue)
-                    {
-                        var @new = new TAggregate
-                        {
-                            Id = @event.EventStreamId
-                        };
-
-                        @new.Apply(@event);
-
-                        updater.AddOrUpdate(@new);
-                    }
-                    else
-                    {
-                        aggregate.Value.Apply(@event);
-
-                        updater.AddOrUpdate(aggregate.Value);
-                    }
-
-                });
+                var stateOfTheWorld = await GetStateOfTheWorld();
 
                 //run all events on cache
                 foreach (var eventMessage in stateOfTheWorld.Events)
                 {
                     var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventMessage);
 
-                    update(@event);
+                    ApplyEvent(@event, (aggregate) => updater.AddOrUpdate(aggregate));
                 }
 
                 //block new events consumption until the caughting up cache is digested
                 _blockEventConsumption.Reset();
 
+                //keep only relevant events
                 var replayEvents = _caughtingUpCache.CaughtUpEvents
                                                 .Where(ev => !stateOfTheWorld.Events.Any(msg => msg.EventId.Id == ev.EventId))
                                                 .ToList();
 
                 foreach (var @event in replayEvents)
                 {
-                    update(@event);
+                    ApplyEvent(@event, (aggregate) => updater.AddOrUpdate(aggregate));
                 }
 
             });
 
-            //the cache is up to date
+            _logger.LogInformation($"Caught up with state of the world");
+
+            //the cache is up to date, first notify the caughting up process end...
             _isCaughtingUp.OnNext(false);
 
-            //allow event consumption to proceed
+            //...then allow event consumption to proceed
             _blockEventConsumption.Set();
 
             //clear the caughting up cache for further use
@@ -377,39 +390,6 @@ namespace DynamicData.Cache
 
         protected override Task RunInternal()
         {
-            //on reconnected start a caughtup process
-            var observeCacheState = _state
-                .Where(state => state == DynamicCacheState.Reconnected)
-                .Subscribe(_ =>
-                 {
-                     _isCaughtingUp.OnNext(true);
-                 });
-
-            _cleanup.Add(observeCacheState);
-
-            //start caughting up by fetching the broker state of the world
-            var observeCaughtingUpState = _isCaughtingUp
-                .Where(state => state)
-                .Subscribe(_ =>
-                {
-                    //run on new Task as CaughtUpToStateOfTheWorld is blocking
-                    _caughtUpWithStateOfTheWorldProc = Task.Run(CaughtUpToStateOfTheWorld, _cancel.Token);
-                });
-
-            _cleanup.Add(observeCaughtingUpState);
-
-            var observeErrors = Observable
-                                .FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(e => Errors.CollectionChanged += e, e => Errors.CollectionChanged -= e)
-                                .Where(arg => arg.EventArgs.NewItems.Count > 0)
-                                .Subscribe(arg =>
-                                {
-                                    foreach(var error in arg.EventArgs.NewItems.Cast<DynamicCacheMonitoringError>())
-                                    {
-                                        _logger.LogError(error.Message, error.Exception);
-                                    }
-                                });
-
-            _cleanup.Add(observeErrors);
 
             _caughtUpWithStateOfTheWorldProc = Task.CompletedTask;
 
@@ -425,6 +405,8 @@ namespace DynamicData.Cache
 
         protected async override Task DestroyInternal()
         {
+
+            //todo: serial disposable
             _cancel.Cancel();
 
             _cleanup.Dispose();

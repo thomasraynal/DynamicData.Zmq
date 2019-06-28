@@ -72,16 +72,16 @@ namespace DynamicData.Tests.E2E
 
         public DynamicCache<string, CurrencyPair> GetCache(IDynamicCacheConfiguration configuration)
         {
-            var cache = new DynamicCache<string, CurrencyPair>(configuration, LoggerForTests.Default, _eventSerializer);
+            var cache = new DynamicCache<string, CurrencyPair>(configuration, LoggerForTests<DynamicCache<string, CurrencyPair>>.Default(), _eventSerializer);
 
             _actors.Add(cache);
 
             return cache;
         }
 
-        public Market GetMarket(string marketName, IProducerConfiguration configuration, bool autogen, TimeSpan priceGenerationDelay)
+        public Market GetMarket(MarketConfiguration configuration)
         {
-            var market = new Market(marketName, configuration, _eventSerializer, priceGenerationDelay, autogen);
+            var market = new Market(configuration, LoggerForTests<Market>.Default(), _eventSerializer);
 
             _actors.Add(market);
 
@@ -90,7 +90,7 @@ namespace DynamicData.Tests.E2E
 
         public IActor GetBrokerageService(IBrokerageServiceConfiguration configuration)
         {
-            var router = new BrokerageService(configuration, _eventCache, _serializer);
+            var router = new BrokerageService(configuration, LoggerForTests<BrokerageService>.Default(), _eventCache, _serializer);
             _actors.Add(router);
 
             return router;

@@ -7,10 +7,12 @@ using DynamicData.Dto;
 using DynamicData.EventCache;
 using DynamicData.Serialization;
 using DynamicData.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace DynamicData.Broker
 {
-    public class BrokerageService : ActorBase
+    //todo: error handling
+    public class BrokerageService : ActorBase, IBrokerageService
     {
 
         private readonly CancellationTokenSource _cancel;
@@ -27,7 +29,7 @@ namespace DynamicData.Broker
         private readonly ISerializer _serializer;
         private readonly IBrokerageServiceConfiguration _configuration;
 
-        public BrokerageService(IBrokerageServiceConfiguration configuration, IEventCache cache,ISerializer serializer)
+        public BrokerageService(IBrokerageServiceConfiguration configuration, ILogger<BrokerageService> logger, IEventCache cache, ISerializer serializer) : base(logger)
         {
             _cache = cache;
             _serializer = serializer;
@@ -59,7 +61,7 @@ namespace DynamicData.Broker
 
         }
 
-        public void HandleHeartbeat()
+        private void HandleHeartbeat()
         {
             using (var heartbeatSocket = new ResponseSocket(_configuration.HeartbeatEndpoint))
             {
@@ -83,7 +85,7 @@ namespace DynamicData.Broker
         {
             using (var stateRequestSocket = new RouterSocket())
             {
-                stateRequestSocket.Bind(_configuration.StateOftheWorldEndpoint);
+                stateRequestSocket.Bind(_configuration.StateOfTheWorldEndpoint);
 
                 using (_stateRequestPoller = new NetMQPoller { stateRequestSocket })
                 {

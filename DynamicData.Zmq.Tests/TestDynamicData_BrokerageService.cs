@@ -4,16 +4,14 @@ using DynamicData.Demo;
 using DynamicData.Dto;
 using DynamicData.Event;
 using DynamicData.EventCache;
+using DynamicData.Tests;
 using NetMQ;
 using NetMQ.Sockets;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace DynamicData.Zmq.Tests
@@ -51,12 +49,12 @@ namespace DynamicData.Zmq.Tests
             var brokerConfiguration = new BrokerageServiceConfiguration()
             {
                 HeartbeatEndpoint = HeartbeatEndpoint,
-                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                StateOfTheWorldEndpoint = StateOfTheWorldEndpoint,
                 ToSubscribersEndpoint = ToSubscribersEndpoint,
                 ToPublisherEndpoint = ToPublishersEndpoint
             };
 
-            _broker = new BrokerageService(brokerConfiguration, _eventCache, _serializer);
+            _broker = new BrokerageService(brokerConfiguration, LoggerForTests<BrokerageService>.Default(), _eventCache, _serializer);
 
             await _broker.Run();
 

@@ -1,10 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Text;
 using DynamicData.Serialization;
 
-namespace DynamicData.Demo
+namespace DynamicData.Default
 {
     public class JsonNetSerializer : ISerializer
     {

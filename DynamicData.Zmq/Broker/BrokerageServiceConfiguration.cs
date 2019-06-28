@@ -13,7 +13,7 @@ namespace DynamicData.Broker
 
         public string ToPublisherEndpoint { get; set; }
         public string ToSubscribersEndpoint { get; set; }
-        public string StateOftheWorldEndpoint { get; set; }
+        public string StateOfTheWorldEndpoint { get; set; }
         public string HeartbeatEndpoint { get; set; }
         public int ZmqHighWatermark { get; set; }
     }

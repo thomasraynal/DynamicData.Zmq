@@ -9,9 +9,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Tests", "Dy
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Mvc", "DynamicData.Zmq.Mvc\DynamicData.Zmq.Mvc.csproj", "{C2916A87-576A-4448-B661-C08BFA212709}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo", "DynamicData.Zmq.Demo\DynamicData.Zmq.Demo.csproj", "{7371BE84-F83B-49CD-90A4-3E631D08BF6C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo.Broker", "DynamicData.Zmq.Demo\DynamicData.Zmq.Demo.Broker.csproj", "{7371BE84-F83B-49CD-90A4-3E631D08BF6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Tests.E2E", "DynamicData.Zmq.Tests.E2E\DynamicData.Zmq.Tests.E2E.csproj", "{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Tests.E2E", "DynamicData.Zmq.Tests.E2E\DynamicData.Zmq.Tests.E2E.csproj", "{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Demo.Client", "DynamicData.Zmq.Demo.Client\DynamicData.Zmq.Demo.Client.csproj", "{313A5AA2-25B2-4A57-BE15-CB992C7F0F56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Demo.Shared", "DynamicData.Zmq.Demo.Shared\DynamicData.Zmq.Demo.Shared.csproj", "{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +43,14 @@ Global
 		{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{313A5AA2-25B2-4A57-BE15-CB992C7F0F56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{313A5AA2-25B2-4A57-BE15-CB992C7F0F56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{313A5AA2-25B2-4A57-BE15-CB992C7F0F56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{313A5AA2-25B2-4A57-BE15-CB992C7F0F56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

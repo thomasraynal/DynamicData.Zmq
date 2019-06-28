@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 using DynamicData.Dto;
 using DynamicData.Event;
 using DynamicData.Shared;
-using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
+using Microsoft.Extensions.Logging;
 
 namespace DynamicData.Producer
 {
-    public abstract class ProducerBase<TKey,TAggregate> : ActorBase where TAggregate : IAggregate<TKey>
+    public abstract class ProducerBase<TKey, TAggregate> : ActorBase, IProducer<TKey, TAggregate> where TAggregate : IAggregate<TKey>
     {
 
         private readonly IEventSerializer _eventSerializer;
@@ -31,12 +31,15 @@ namespace DynamicData.Producer
             }
         }
 
-        public IObservable<ProducerState> OnStateChanged()
+        public IObservable<ProducerState> OnStateChanged
         {
-            return _state.AsObservable();
+            get
+            {
+                return _state.AsObservable();
+            }
         }
 
-        public ProducerBase(IProducerConfiguration producerConfiguration, IEventSerializer eventSerializer)
+        public ProducerBase(IProducerConfiguration producerConfiguration, ILogger logger, IEventSerializer eventSerializer) : base(logger)
         {
             _eventSerializer = eventSerializer;
             _configuration = producerConfiguration;
@@ -83,7 +86,7 @@ namespace DynamicData.Producer
 
                     if (_cancel.IsCancellationRequested) return;
 
-                    //todo: handle zombie socket
+
                     using (var heartbeat = new RequestSocket(_configuration.HeartbeatEndpoint))
                     {
 

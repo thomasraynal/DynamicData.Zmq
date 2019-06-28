@@ -7,12 +7,8 @@ namespace DynamicData.Cache
 {
     public class DynamicCacheConfiguration : IDynamicCacheConfiguration
     {
-        public DynamicCacheConfiguration(string subscriptionEndpoint, string stateOfTheWorldEndpoint, string hearbeatEndpoint)
+        public DynamicCacheConfiguration()
         {
-            SubscriptionEndpoint = subscriptionEndpoint;
-            HeartbeatEndpoint = hearbeatEndpoint;
-            StateOfTheWorldEndpoint = stateOfTheWorldEndpoint;
-
             StateCatchupTimeout = TimeSpan.FromSeconds(10);
             HeartbeatDelay = TimeSpan.FromSeconds(10);
             HeartbeatTimeout = TimeSpan.FromSeconds(10);
@@ -21,7 +17,13 @@ namespace DynamicData.Cache
             ZmqHighWatermark = 1000;
 
             Subject = string.Empty;
+        }
 
+        public DynamicCacheConfiguration(string subscriptionEndpoint, string stateOfTheWorldEndpoint, string hearbeatEndpoint): this()
+        {
+            SubscriptionEndpoint = subscriptionEndpoint;
+            HeartbeatEndpoint = hearbeatEndpoint;
+            StateOfTheWorldEndpoint = stateOfTheWorldEndpoint;
         }
 
         public string Subject { get; set; }

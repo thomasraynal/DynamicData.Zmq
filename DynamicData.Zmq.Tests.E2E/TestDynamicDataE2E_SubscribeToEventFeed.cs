@@ -19,14 +19,14 @@ namespace DynamicData.Tests.E2E
             var brokerConfiguration = new BrokerageServiceConfiguration()
             {
                 HeartbeatEndpoint = HeartbeatEndpoint,
-                StateOftheWorldEndpoint = StateOfTheWorldEndpoint,
+                StateOfTheWorldEndpoint = StateOfTheWorldEndpoint,
                 ToSubscribersEndpoint = ToSubscribersEndpoint,
                 ToPublisherEndpoint = ToPublishersEndpoint
             };
 
             var router = GetBrokerageService(brokerConfiguration);
 
-            var marketConfiguration = new ProducerConfiguration()
+            var marketConfigurationFxConnect = new MarketConfiguration("FxConnect")
             {
                 BrokerEndpoint = ToPublishersEndpoint,
                 HeartbeatEndpoint = HeartbeatEndpoint,
@@ -34,8 +34,16 @@ namespace DynamicData.Tests.E2E
                 HeartbeatTimeout = TimeSpan.FromSeconds(1)
             };
 
-            var market1 = GetMarket("FxConnect", marketConfiguration, true, TimeSpan.FromMilliseconds(1000));
-            var market2 = GetMarket("Harmony", marketConfiguration, true, TimeSpan.FromMilliseconds(1000));
+            var marketConfigurationHarmony = new MarketConfiguration("Harmony")
+            {
+                BrokerEndpoint = ToPublishersEndpoint,
+                HeartbeatEndpoint = HeartbeatEndpoint,
+                HeartbeatDelay = TimeSpan.FromSeconds(1),
+                HeartbeatTimeout = TimeSpan.FromSeconds(1)
+            };
+
+            var market1 = GetMarket(marketConfigurationFxConnect);
+            var market2 = GetMarket(marketConfigurationHarmony);
 
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
