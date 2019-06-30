@@ -1,5 +1,4 @@
 ﻿using DynamicData.Zmq.Default;
-using DynamicData.Zmq.Demo;
 using DynamicData.Zmq.Dto;
 using DynamicData.Zmq.EventCache;
 using DynamicData.Zmq.Mvc;

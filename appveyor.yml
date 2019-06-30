@@ -7,6 +7,7 @@ build_script:
 - cmd: msbuild /restore /p:Configuration=Release /p:version=%APPVEYOR_BUILD_VERSION% -verbosity:minimal DynamicData.Zmq.sln
 after_test:
 - cmd: appveyor PushArtifact %APPVEYOR_BUILD_FOLDER%\DynamicData.Zmq.Mvc\bin\Release\DynamicData.Zmq.Mvc.%APPVEYOR_BUILD_VERSION%.nupkg
+- cmd: appveyor PushArtifact %APPVEYOR_BUILD_FOLDER%\DynamicData.Zmq\bin\Release\DynamicData.Zmq.%APPVEYOR_BUILD_VERSION%.nupkg
 test: off
 test_script:
 - cmd: |

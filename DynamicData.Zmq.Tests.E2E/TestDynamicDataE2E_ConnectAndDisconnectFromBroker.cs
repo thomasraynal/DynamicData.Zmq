@@ -80,7 +80,9 @@ namespace DynamicData.Tests.E2E
 
             await router.Run();
 
-            await Task.Delay(3000);
+            await WaitForCachesToCaughtUp(cache);
+
+            await Task.Delay(2000);
 
             Assert.AreEqual(5, cacheStates.Count);
             Assert.AreEqual(DynamicCacheState.NotConnected, cacheStates.ElementAt(0));

@@ -18,7 +18,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DynamicData.Zmq.Demo.Shared\DynamicData.Zmq.Demo.Shared.csproj" />
     <ProjectReference Include="..\DynamicData.Zmq.Mvc\DynamicData.Zmq.Mvc.csproj" />
-    <ProjectReference Include="..\DynamicData.Zmq\DynamicData.Zmq.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -61,7 +61,6 @@ namespace DynamicData.Tests.E2E
             await market1.WaitUntilConnected();
 
             Assert.AreEqual(ProducerState.Connected, market1.ProducerState);
-  
 
             market1.PublishNext();
             market1.PublishNext();

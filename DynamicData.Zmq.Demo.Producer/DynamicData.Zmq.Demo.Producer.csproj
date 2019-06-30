@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="DynamicData.Zmq.Mvc" Version="1.0.10" />
     <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
@@ -15,8 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DynamicData.Zmq.Demo.Shared\DynamicData.Zmq.Demo.Shared.csproj" />
-    <ProjectReference Include="..\DynamicData.Zmq.Mvc\DynamicData.Zmq.Mvc.csproj" />
-    <ProjectReference Include="..\DynamicData.Zmq\DynamicData.Zmq.csproj" />
   </ItemGroup>
 
   <ItemGroup>

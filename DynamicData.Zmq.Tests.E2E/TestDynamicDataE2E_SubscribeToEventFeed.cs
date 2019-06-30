@@ -75,8 +75,6 @@ namespace DynamicData.Tests.E2E
 
             await cache.Run();
 
-            await Task.Delay(1000);
-
             await WaitForCachesToCaughtUp(cache);
 
             var eventCacheItems = cache.Items.SelectMany(item => item.AppliedEvents).ToList();

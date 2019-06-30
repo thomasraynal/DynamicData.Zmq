@@ -61,8 +61,6 @@ namespace DynamicData.Tests.E2E
             await cache.Run();
             await cacheProof.Run();
 
-            await Task.Delay(1000);
-
             await WaitForCachesToCaughtUp(cache, cacheProof);
 
             var cacheEvents = cache.Items

@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Tests", "Dy
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Mvc", "DynamicData.Zmq.Mvc\DynamicData.Zmq.Mvc.csproj", "{C2916A87-576A-4448-B661-C08BFA212709}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo.Broker", "DynamicData.Zmq.Demo\DynamicData.Zmq.Demo.Broker.csproj", "{7371BE84-F83B-49CD-90A4-3E631D08BF6C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo.Broker", "DynamicData.Zmq.Demo.Broker\DynamicData.Zmq.Demo.Broker.csproj", "{7371BE84-F83B-49CD-90A4-3E631D08BF6C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Tests.E2E", "DynamicData.Zmq.Tests.E2E\DynamicData.Zmq.Tests.E2E.csproj", "{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}"
 EndProject
