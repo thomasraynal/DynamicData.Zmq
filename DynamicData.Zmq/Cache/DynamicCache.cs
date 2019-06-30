@@ -52,8 +52,7 @@ namespace DynamicData.Cache
 
         public DynamicCache(IDynamicCacheConfiguration configuration, ILogger<DynamicCache<TKey, TAggregate>> logger, IEventSerializer eventSerializer) : base(logger)
         {
-            //todo validate configuration
-
+          
             _blockEventConsumption = new ManualResetEventSlim(true);
 
             _cacheErrors = new ObservableCollection<DynamicCacheMonitoringError>();
@@ -84,25 +83,36 @@ namespace DynamicData.Cache
 
 
             //on reconnected start try to caught up
-            _state.Where(state => state == DynamicCacheState.Reconnected)
-                    .Subscribe(state => _isCaughtingUp.OnNext(true))
-                    .Cleanup(_cleanup);
+            _state.Subscribe(state =>
+            {
+                _logger.LogInformation($"Cache state is {state}");
 
+                if (state == DynamicCacheState.Reconnected)
+                {
+                    _isCaughtingUp.OnNext(true);
+                }
 
-            _state.Subscribe(state => _logger.LogInformation($"Cache state is {state}")).Cleanup(_cleanup);
+            }).Cleanup(_cleanup);
+
 
             //start caughting up by fetching the broker state of the world
-            _isCaughtingUp.Where(state => state)
-                          .Subscribe(_ =>_caughtUpWithStateOfTheWorldProc = Task.Run(()=>
-                          {
-                              WaitUntilConnected();
+            _isCaughtingUp
+                .Where(state => state)
+                .Subscribe(_ => 
+                
+                    _caughtUpWithStateOfTheWorldProc = Task.Run(() =>
+                               {
+                                   WaitUntilConnected();
 
-                              WaitUntilCaughtUpToStateOfTheWorld();
+                                   WaitUntilCaughtUpToStateOfTheWorld();
 
-                          }, _cancel.Token))
-                          .Cleanup(_cleanup);
+                               }, _cancel.Token))
 
-            Observable.FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>(e => Errors.CollectionChanged += e, e => Errors.CollectionChanged -= e)
+                 .Cleanup(_cleanup);
+
+
+            Observable.FromEventPattern<NotifyCollectionChangedEventHandler, NotifyCollectionChangedEventArgs>
+                            (e => Errors.CollectionChanged += e, e => Errors.CollectionChanged -= e)
                       .Where(arg => arg.EventArgs.NewItems.Count > 0)
                       .Subscribe(arg =>
                       {

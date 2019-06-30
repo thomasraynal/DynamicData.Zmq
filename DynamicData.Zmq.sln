@@ -13,9 +13,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo.Broker
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Tests.E2E", "DynamicData.Zmq.Tests.E2E\DynamicData.Zmq.Tests.E2E.csproj", "{FE08219A-D89F-44F5-A99E-D4C3FEAADEE9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Demo.Client", "DynamicData.Zmq.Demo.Client\DynamicData.Zmq.Demo.Client.csproj", "{313A5AA2-25B2-4A57-BE15-CB992C7F0F56}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo.Client", "DynamicData.Zmq.Demo.Client\DynamicData.Zmq.Demo.Client.csproj", "{313A5AA2-25B2-4A57-BE15-CB992C7F0F56}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Demo.Shared", "DynamicData.Zmq.Demo.Shared\DynamicData.Zmq.Demo.Shared.csproj", "{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicData.Zmq.Demo.Shared", "DynamicData.Zmq.Demo.Shared\DynamicData.Zmq.Demo.Shared.csproj", "{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicData.Zmq.Demo.Producer", "DynamicData.Zmq.Demo.Producer\DynamicData.Zmq.Demo.Producer.csproj", "{0A1861A1-BD99-4CF8-9A08-879127D4D5C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE4A0C5A-1125-4A3D-B860-B3B317A0044B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A1861A1-BD99-4CF8-9A08-879127D4D5C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A1861A1-BD99-4CF8-9A08-879127D4D5C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A1861A1-BD99-4CF8-9A08-879127D4D5C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A1861A1-BD99-4CF8-9A08-879127D4D5C7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
