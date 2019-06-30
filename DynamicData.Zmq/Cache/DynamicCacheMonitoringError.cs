@@ -1,7 +1,6 @@
-﻿using DynamicData.Cache;
-using System;
+﻿using System;
 
-namespace DynamicData.Cache
+namespace DynamicData.Zmq.Cache
 {
     public class DynamicCacheMonitoringError
     {

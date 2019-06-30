@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Polly;
 
-namespace DynamicData.Cache
+namespace DynamicData.Zmq.Cache
 {
     public class DynamicCacheConfiguration : IDynamicCacheConfiguration
     {

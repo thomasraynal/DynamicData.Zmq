@@ -1,6 +1,6 @@
-﻿using DynamicData.EventCache;
+﻿using DynamicData.Zmq.EventCache;
 
-namespace DynamicData.Dto
+namespace DynamicData.Zmq.Dto
 {
     public interface IEventMessage
     {

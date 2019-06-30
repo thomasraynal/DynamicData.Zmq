@@ -1,6 +1,6 @@
-﻿using DynamicData.Event;
+﻿using DynamicData.Zmq.Event;
 
-namespace DynamicData.Demo
+namespace DynamicData.Zmq.Demo
 {
     public class ChangeCcyPairPrice : CommandBase<string, CurrencyPair>
     {

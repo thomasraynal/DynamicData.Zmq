@@ -3,7 +3,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace DynamicData.Shared
+namespace DynamicData.Zmq.Shared
 {
     public abstract class ActorBase : IActor
     {

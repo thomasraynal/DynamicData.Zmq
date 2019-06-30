@@ -1,6 +1,4 @@
-﻿using DynamicData.Shared;
-
-namespace DynamicData.EventCache
+﻿namespace DynamicData.Zmq.EventCache
 {
     public interface IEventCacheItem
     {

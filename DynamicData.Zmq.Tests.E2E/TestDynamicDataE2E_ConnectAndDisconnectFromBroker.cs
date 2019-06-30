@@ -3,10 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DynamicData.Broker;
-using DynamicData.Cache;
-using DynamicData.Producer;
-using DynamicData.Demo;
+using DynamicData.Zmq.Broker;
+using DynamicData.Zmq.Cache;
+using DynamicData.Zmq.Producer;
+using DynamicData.Zmq.Demo;
 
 namespace DynamicData.Tests.E2E
 {

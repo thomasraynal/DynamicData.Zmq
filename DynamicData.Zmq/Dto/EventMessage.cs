@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using DynamicData.EventCache;
+using DynamicData.Zmq.EventCache;
 
-namespace DynamicData.Dto
+namespace DynamicData.Zmq.Dto
 {
     public class EventMessage : IEventMessage
     {

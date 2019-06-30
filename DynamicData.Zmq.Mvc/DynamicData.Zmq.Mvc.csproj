@@ -2,6 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
+    <PackageProjectUrl>https://github.com/thomasraynal/DynamicData.Zmq</PackageProjectUrl>
+    <Description>ZeroMQ (via NetMQ) pub/sub platform, built with CQRS in mind, using event sourcing</Description>
+    <PackageTags>DynamicData;NetMQ;CQRS</PackageTags>
+    <Authors>Thomas Raynal</Authors>
+    <Company />
+    <Product />
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>

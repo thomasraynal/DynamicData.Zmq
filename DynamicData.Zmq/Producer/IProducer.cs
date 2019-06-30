@@ -1,8 +1,9 @@
 ﻿using System;
-using DynamicData.Event;
-using DynamicData.Shared;
+using DynamicData.Zmq.Aggregate;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.Shared;
 
-namespace DynamicData.Producer
+namespace DynamicData.Zmq.Producer
 {
     public interface IProducer<TKey, TAggregate> : IActor where TAggregate : IAggregate<TKey>
     {

@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Text;
-using DynamicData.Serialization;
+using DynamicData.Zmq.Serialization;
 
-namespace DynamicData.Default
+namespace DynamicData.Zmq.Default
 {
     public class JsonNetSerializer : ISerializer
     {

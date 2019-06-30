@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DynamicData.Broker
+﻿namespace DynamicData.Zmq.Broker
 {
     public class BrokerageServiceConfiguration : IBrokerageServiceConfiguration
     {

@@ -7,18 +7,19 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using DynamicData.Dto;
-using DynamicData.Event;
-using DynamicData.EventCache;
-using DynamicData.Shared;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.EventCache;
+using DynamicData.Zmq.Shared;
 using System.Reactive.Disposables;
 using Polly;
 using Polly.Retry;
 using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using System.Collections.Specialized;
+using DynamicData.Zmq.Aggregate;
 
-namespace DynamicData.Cache
+namespace DynamicData.Zmq.Cache
 {
     public class DynamicCache<TKey, TAggregate> : ActorBase, IDynamicCache<TKey, TAggregate>
         where TAggregate : IAggregate<TKey>, new()

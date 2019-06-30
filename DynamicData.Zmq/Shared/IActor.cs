@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace DynamicData.Shared
+namespace DynamicData.Zmq.Shared
 {
     public interface IActor
     {

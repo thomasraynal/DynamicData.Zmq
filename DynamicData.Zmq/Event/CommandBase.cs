@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using DynamicData.Zmq.Aggregate;
 
-namespace DynamicData.Event
+namespace DynamicData.Zmq.Event
 {
     public abstract class CommandBase<TKey, TAggregate> : EventBase<TKey, TAggregate> where TAggregate : IAggregate<TKey>
     {

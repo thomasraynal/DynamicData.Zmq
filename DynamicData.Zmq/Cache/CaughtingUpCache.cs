@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using DynamicData.Event;
-using DynamicData.Shared;
+﻿using System.Collections.Generic;
+using DynamicData.Zmq.Aggregate;
+using DynamicData.Zmq.Event;
 
-namespace DynamicData.Cache
+namespace DynamicData.Zmq.Cache
 {
     public class CaughtingUpCache<TKey, TAggregate> where TAggregate : IAggregate<TKey>, new()
     {

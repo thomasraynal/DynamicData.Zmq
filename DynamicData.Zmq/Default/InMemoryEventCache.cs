@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using DynamicData.Broker;
-using DynamicData.Dto;
-using DynamicData.Event;
-using DynamicData.EventCache;
+using DynamicData.Zmq.Broker;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.EventCache;
 
-namespace DynamicData.Default
+namespace DynamicData.Zmq.Default
 {
     public class InMemoryEventCache : IEventCache
     {

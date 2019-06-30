@@ -1,4 +1,4 @@
-﻿namespace DynamicData.Dto
+﻿namespace DynamicData.Zmq.Dto
 {
     public interface IStateRequest
     {

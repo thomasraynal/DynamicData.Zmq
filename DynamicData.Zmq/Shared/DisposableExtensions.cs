@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reactive.Disposables;
-using System.Text;
 
-namespace DynamicData.Shared
+namespace DynamicData.Zmq.Shared
 {
     public static class DisposableExtensions
     {

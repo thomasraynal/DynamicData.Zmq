@@ -1,9 +1,6 @@
-﻿using DynamicData.Shared;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using DynamicData.Zmq.Shared;
 
-namespace DynamicData.Broker
+namespace DynamicData.Zmq.Broker
 {
     public interface IBrokerageService : IActor
     {

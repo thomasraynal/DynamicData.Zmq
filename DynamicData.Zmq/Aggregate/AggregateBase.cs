@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using DynamicData.Event;
+using DynamicData.Zmq.Event;
 
-namespace DynamicData.Aggregate
+namespace DynamicData.Zmq.Aggregate
 {
     public class AggregateBase<TKey> : IAggregate<TKey>
     {

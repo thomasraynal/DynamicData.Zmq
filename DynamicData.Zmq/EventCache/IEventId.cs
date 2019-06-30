@@ -1,4 +1,4 @@
-﻿namespace DynamicData.EventCache
+﻿namespace DynamicData.Zmq.EventCache
 {
     public interface IEventId
     {

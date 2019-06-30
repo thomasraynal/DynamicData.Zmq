@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using DynamicData.Zmq.Aggregate;
+using System;
 
-namespace DynamicData.Event
+namespace DynamicData.Zmq.Event
 {
     //todo: string representation of event stream id
     public interface IEvent

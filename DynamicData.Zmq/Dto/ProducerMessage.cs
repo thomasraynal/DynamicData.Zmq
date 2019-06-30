@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DynamicData.Dto
+namespace DynamicData.Zmq.Dto
 {
     public class ProducerMessage : IProducerMessage
     {

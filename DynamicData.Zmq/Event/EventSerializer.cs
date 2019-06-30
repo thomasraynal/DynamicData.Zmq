@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
-using DynamicData.Dto;
-using DynamicData.EventCache;
-using DynamicData.Serialization;
+using DynamicData.Zmq.Aggregate;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.EventCache;
+using DynamicData.Zmq.Serialization;
 
-namespace DynamicData.Event
+namespace DynamicData.Zmq.Event
 {
 
     public class EventSerializer : IEventSerializer

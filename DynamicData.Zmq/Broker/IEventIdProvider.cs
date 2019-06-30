@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using DynamicData.EventCache;
+﻿using System.Threading.Tasks;
+using DynamicData.Zmq.EventCache;
 
-namespace DynamicData.Broker
+namespace DynamicData.Zmq.Broker
 {
     public interface IEventIdProvider
     {

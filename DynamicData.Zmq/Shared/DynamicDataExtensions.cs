@@ -1,10 +1,7 @@
-﻿using DynamicData;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Reactive;
-using System.Text;
 
-namespace DynamicData.Shared
+namespace DynamicData.Zmq.Shared
 {
     public static class DynamicDataExtensions
     {

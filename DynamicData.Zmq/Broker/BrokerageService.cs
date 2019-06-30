@@ -3,13 +3,13 @@ using NetMQ.Sockets;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DynamicData.Dto;
-using DynamicData.EventCache;
-using DynamicData.Serialization;
-using DynamicData.Shared;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.EventCache;
+using DynamicData.Zmq.Shared;
 using Microsoft.Extensions.Logging;
+using DynamicData.Zmq.Serialization;
 
-namespace DynamicData.Broker
+namespace DynamicData.Zmq.Broker
 {
     //todo: error handling
     public class BrokerageService : ActorBase, IBrokerageService

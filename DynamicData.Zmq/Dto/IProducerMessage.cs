@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DynamicData.Dto
+namespace DynamicData.Zmq.Dto
 {
     public interface IProducerMessage
     {

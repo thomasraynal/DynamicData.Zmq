@@ -1,14 +1,14 @@
 ﻿# DynamicData.Zmq
 
-[![Build status](https://ci.appveyor.com/api/projects/status/ac9e3j57b65ove3p?svg=true)](https://ci.appveyor.com/project/thomasraynal/dynamicdata-zmq)
+[![Build status](https://ci.appveyor.com/api/projects/status/ac9e3j57b65ove3p?svg=true)](https://ci.appveyor.com/project/thomasraynal/dynamicdata-zmq) [![NuGet](https://img.shields.io/nuget/v/DynamicData.Zmq.svg)](https://www.nuget.org/packages/DynamicData.Zmq)
 
 DynamicData.Zmq is a classic ZeroMQ (using [NetMQ](https://github.com/zeromq/netmq)) pub/sub platform using a broker for message control. Read operations on the system state are done on a local cache while write operations are done at the broker level. The broker itself act as an event database.
 
-Each producer generates events or commands on a given subject (i.e, a currency pair price). The subject itself is as such a stream of events, that is an aggregate. Each event is defined by routable properties which serialize as a ZeroMQ readable subject (i.e, my event should be serialized as {CcyPair}.{Market} or {CcyPair}.{Market}.{Counterparty} in order to allow a ZeroMQ filter at the socket level).
+Each producer generates events or commands on a given subject (e.g, price changed event for a currency pair). The subject itself is as such a stream of events, that is an aggregate. Each event is defined by routable properties which serialize as a ZeroMQ readable subject (e.g, my event should be serialized as {CcyPair}.{Market} or {CcyPair}.{Market}.{Counterparty}) in order to allow a ZeroMQ filter at the socket level.
 
 The broker captures the event, gives it an id and a position in the stream, and save it before forwarding it to its subscribers.
 
-The subscriber holds a local cache, using [DynamicData](https://github.com/RolandPheasant/DynamicData), where events are applied on aggregates (i.e, a ChangePriceEvent on the EUR/USD currency pair). DynamicData ObservableCache allows then to process the event to internal subscribers, using Rx.
+The subscriber holds a local cache, using [DynamicData](https://github.com/RolandPheasant/DynamicData), where events are applied on aggregates (e.g, a ChangePriceEvent on the EUR/USD currency pair). DynamicData ObservableCache allows then to process the event to internal subscribers, using Rx.
 
 The subscriber manages disconnection and cache rebuilding. The broker keeps a "state of the world" router socket open to get the current application state which is then reconciled locally with the events received during the caughting-up process. 
 

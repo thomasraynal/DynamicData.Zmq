@@ -1,7 +1,7 @@
 ﻿using System;
-using DynamicData.Shared;
+using DynamicData.Zmq.Shared;
 
-namespace DynamicData.Producer
+namespace DynamicData.Zmq.Producer
 {
     public interface IProducerConfiguration : ICanCheckHeartbeatConfiguration
     {

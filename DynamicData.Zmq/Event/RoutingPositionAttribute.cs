@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace DynamicData.Event
+namespace DynamicData.Zmq.Event
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class RoutingPositionAttribute : Attribute

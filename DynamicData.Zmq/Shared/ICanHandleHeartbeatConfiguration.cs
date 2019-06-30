@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DynamicData.Shared
+﻿namespace DynamicData.Zmq.Shared
 {
     public interface ICanHandleHeartbeatConfiguration
     {

@@ -1,8 +1,9 @@
-﻿using DynamicData.Dto;
-using DynamicData.EventCache;
-using DynamicData.Serialization;
+﻿using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.EventCache;
+using DynamicData.Zmq.Serialization;
+using DynamicData.Zmq.Aggregate;
 
-namespace DynamicData.Event
+namespace DynamicData.Zmq.Event
 {
     public interface IEventSerializer
     {

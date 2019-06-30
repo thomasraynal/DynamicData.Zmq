@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DynamicData.Demo
+namespace DynamicData.Zmq.Demo
 {
     public enum CcyPairState
     {

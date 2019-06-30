@@ -8,12 +8,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DynamicData.Default;
-using DynamicData.Demo;
-using DynamicData.Dto;
-using DynamicData.Event;
-using DynamicData.EventCache;
-using DynamicData.Cache;
+using DynamicData.Zmq.Default;
+using DynamicData.Zmq.Demo;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.EventCache;
+using DynamicData.Zmq.Cache;
 using DynamicData.Tests;
 
 namespace DynamicData.Zmq.Tests

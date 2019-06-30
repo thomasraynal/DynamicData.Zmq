@@ -1,10 +1,10 @@
-﻿using DynamicData;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using DynamicData.Shared;
+using DynamicData.Zmq.Shared;
 using System.Collections.ObjectModel;
+using DynamicData.Zmq.Aggregate;
 
-namespace DynamicData.Cache
+namespace DynamicData.Zmq.Cache
 {
     public interface IDynamicCache<TKey, TAggregate> : IActor where TAggregate : IAggregate<TKey>
     {

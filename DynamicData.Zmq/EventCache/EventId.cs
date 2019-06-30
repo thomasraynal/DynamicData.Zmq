@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DynamicData.EventCache
+﻿namespace DynamicData.Zmq.EventCache
 {
     public class EventId : IEventId
     {

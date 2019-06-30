@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
+using DynamicData.Zmq.Event;
 
-using DynamicData.Aggregate;
-using DynamicData.Event;
-
-namespace DynamicData
+namespace DynamicData.Zmq.Aggregate
 {
     public interface IAggregate
     {

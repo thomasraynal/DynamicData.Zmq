@@ -1,5 +1,5 @@
-﻿using DynamicData.Demo;
-using DynamicData.Producer;
+﻿using DynamicData.Zmq.Demo;
+using DynamicData.Zmq.Producer;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;

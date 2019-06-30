@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace DynamicData.Cache
+namespace DynamicData.Zmq.Cache
 {
     [Serializable]
     public class UnreachableBrokerException : Exception

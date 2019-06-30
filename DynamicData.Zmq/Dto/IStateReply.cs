@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using DynamicData.Dto;
+using DynamicData.Zmq.Dto;
 
-namespace DynamicData.Dto
+namespace DynamicData.Zmq.Dto
 {
     public interface IStateReply
     {

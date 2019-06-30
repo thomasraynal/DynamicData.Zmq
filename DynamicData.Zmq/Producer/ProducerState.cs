@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DynamicData.Producer
+﻿namespace DynamicData.Zmq.Producer
 {
     public enum ProducerState
     {

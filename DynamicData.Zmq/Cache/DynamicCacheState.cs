@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DynamicData.Cache
+﻿namespace DynamicData.Zmq.Cache
 {
     public enum DynamicCacheState
     {

@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using DynamicData.Dto;
+using DynamicData.Zmq.Dto;
 
-namespace DynamicData.EventCache
+namespace DynamicData.Zmq.EventCache
 {
     public interface IEventCache
     {

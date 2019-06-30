@@ -1,6 +1,6 @@
-﻿using DynamicData.Cache;
-using DynamicData.Demo;
-using DynamicData.Event;
+﻿using DynamicData.Zmq.Cache;
+using DynamicData.Zmq.Demo;
+using DynamicData.Zmq.Event;
 using DynamicData.Zmq.Demo.Shared;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

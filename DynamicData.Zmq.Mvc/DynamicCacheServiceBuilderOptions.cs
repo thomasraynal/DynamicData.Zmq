@@ -1,12 +1,9 @@
-﻿using DynamicData.Broker;
-using DynamicData.Default;
-using DynamicData.Event;
-using DynamicData.EventCache;
-using DynamicData.Serialization;
+﻿using DynamicData.Zmq.Broker;
+using DynamicData.Zmq.Default;
+using DynamicData.Zmq.EventCache;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using DynamicData.Zmq.Serialization;
 
 namespace DynamicData.Zmq.Mvc
 {

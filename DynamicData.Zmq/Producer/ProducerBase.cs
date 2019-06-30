@@ -5,12 +5,13 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using DynamicData.Dto;
-using DynamicData.Event;
-using DynamicData.Shared;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.Shared;
 using Microsoft.Extensions.Logging;
+using DynamicData.Zmq.Aggregate;
 
-namespace DynamicData.Producer
+namespace DynamicData.Zmq.Producer
 {
     public abstract class ProducerBase<TKey, TAggregate> : ActorBase, IProducer<TKey, TAggregate> where TAggregate : IAggregate<TKey>
     {

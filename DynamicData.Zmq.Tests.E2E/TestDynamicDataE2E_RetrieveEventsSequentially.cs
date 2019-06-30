@@ -2,11 +2,11 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using DynamicData.Broker;
-using DynamicData.Cache;
-using DynamicData.Demo;
-using DynamicData.Event;
-using DynamicData.Producer;
+using DynamicData.Zmq.Broker;
+using DynamicData.Zmq.Cache;
+using DynamicData.Zmq.Demo;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.Producer;
 
 namespace DynamicData.Tests.E2E
 {

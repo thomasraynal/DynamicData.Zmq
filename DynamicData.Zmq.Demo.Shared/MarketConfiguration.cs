@@ -1,9 +1,9 @@
-﻿using DynamicData.Producer;
+﻿using DynamicData.Zmq.Producer;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DynamicData.Demo
+namespace DynamicData.Zmq.Demo
 {
     public class MarketConfiguration : ProducerConfiguration
     {

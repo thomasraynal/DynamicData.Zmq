@@ -1,9 +1,9 @@
-﻿using DynamicData.Broker;
-using DynamicData.Default;
-using DynamicData.Demo;
-using DynamicData.Dto;
-using DynamicData.Event;
-using DynamicData.EventCache;
+﻿using DynamicData.Zmq.Broker;
+using DynamicData.Zmq.Default;
+using DynamicData.Zmq.Demo;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.EventCache;
 using DynamicData.Tests;
 using NetMQ;
 using NetMQ.Sockets;

@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DynamicData.Event;
-using DynamicData.Producer;
+using DynamicData.Zmq.Event;
+using DynamicData.Zmq.Producer;
 using Microsoft.Extensions.Logging;
 
-namespace DynamicData.Demo
+namespace DynamicData.Zmq.Demo
 {
     public class Market : ProducerBase<string, CurrencyPair>
     {

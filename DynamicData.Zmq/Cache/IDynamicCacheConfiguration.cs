@@ -1,7 +1,7 @@
 ﻿using System;
-using DynamicData.Shared;
+using DynamicData.Zmq.Shared;
 
-namespace DynamicData.Cache
+namespace DynamicData.Zmq.Cache
 {
     public interface IDynamicCacheConfiguration : ICanCheckHeartbeatConfiguration
     {

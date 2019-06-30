@@ -1,4 +1,4 @@
-﻿namespace DynamicData.Broker
+﻿namespace DynamicData.Zmq.Broker
 {
     public interface IBrokerageServiceConfiguration
     {

@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using DynamicData.Broker;
-using DynamicData.EventCache;
+using DynamicData.Zmq.Broker;
+using DynamicData.Zmq.EventCache;
 
-namespace DynamicData.Default
+namespace DynamicData.Zmq.Default
 {
     public class InMemoryEventIdProvider : IEventIdProvider
     {

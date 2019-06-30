@@ -1,7 +1,7 @@
-﻿using DynamicData.Default;
-using DynamicData.Demo;
-using DynamicData.Dto;
-using DynamicData.EventCache;
+﻿using DynamicData.Zmq.Default;
+using DynamicData.Zmq.Demo;
+using DynamicData.Zmq.Dto;
+using DynamicData.Zmq.EventCache;
 using DynamicData.Zmq.Mvc;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,10 +1,9 @@
-﻿using DynamicData.Broker;
-using DynamicData.Cache;
-using DynamicData.Producer;
+﻿using DynamicData.Zmq.Aggregate;
+using DynamicData.Zmq.Broker;
+using DynamicData.Zmq.Cache;
+using DynamicData.Zmq.Producer;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DynamicData.Zmq.Mvc
 {

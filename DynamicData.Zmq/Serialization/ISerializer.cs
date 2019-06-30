@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace DynamicData.Serialization
+namespace DynamicData.Zmq.Serialization
 {
     public interface ISerializer
     {

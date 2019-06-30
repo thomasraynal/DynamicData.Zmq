@@ -1,7 +1,22 @@
 version: 1.0.{build}
 image: Visual Studio 2019
-before_build:
-- cmd: nuget restore
-build:
-  verbosity: minimal
-  project: DynamicData.Zmq.sln
+configuration: Release
+nuget:
+  disable_publish_on_pr: true
+build_script:
+- cmd: msbuild /restore /p:Configuration=Release /p:version=%APPVEYOR_BUILD_VERSION% -verbosity:minimal DynamicData.Zmq.sln
+after_test:
+- cmd: appveyor PushArtifact %APPVEYOR_BUILD_FOLDER%\DynamicData.Zmq.Mvc\bin\Release\DynamicData.Zmq.Mvc.%APPVEYOR_BUILD_VERSION%.nupkg
+test: off
+test_script:
+- cmd: |
+    cd %APPVEYOR_BUILD_FOLDER%
+    dotnet test DynamicData.Zmq.Tests\DynamicData.Zmq.Tests.csproj --configuration Release --no-build --no-restore
+deploy:
+  provider: NuGet
+  api_key:
+    secure: lO5Q3lN0h5a98FiC/zqpN7yXeRjIzgWX1/74ccim/C0/Tixy6yL0jPEjWAaI5pHN
+  skip_symbols: false
+  artifact: /.*\.nupkg/
+  on:
+    branch: master

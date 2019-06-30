@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using DynamicData.Shared;
-
-namespace DynamicData.EventCache
+﻿namespace DynamicData.Zmq.EventCache
 {
     public class EventCacheItem : IEventCacheItem
     {
