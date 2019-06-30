@@ -24,12 +24,6 @@ namespace DynamicData.Tests
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
         {
-            if (null != exception) Console.WriteLine(exception.Message);
-            else
-            {
-                Console.WriteLine(state);
-            }
-
         }
     }
 }

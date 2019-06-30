@@ -35,6 +35,14 @@ namespace DynamicData.Zmq.Tests
 
         private readonly Random _rand = new Random();
 
+        public async Task WaitForCachesToCaughtUp(params DynamicCache<string, CurrencyPair>[] caches)
+        {
+            while (!caches.All(c => !c.IsCaughtingUp))
+            {
+                await Task.Delay(1000);
+            }
+        }
+
         [TearDown]
         public async Task TearDown()
         {
@@ -324,7 +332,7 @@ namespace DynamicData.Zmq.Tests
 
                 await cache.Run();
 
-                await Task.Delay(1000);
+                await WaitForCachesToCaughtUp(cache);
 
                 Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
                 Assert.AreEqual(true, cache.IsStaled);
@@ -419,7 +427,7 @@ namespace DynamicData.Zmq.Tests
 
             await cache.Run();
 
-            await Task.Delay(1000);
+            await WaitForCachesToCaughtUp(cache);
 
             Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
 
@@ -554,7 +562,7 @@ namespace DynamicData.Zmq.Tests
                 await cacheEuroDol.Run();
                 await cacheAll.Run();
 
-                await Task.Delay(2000);
+                await WaitForCachesToCaughtUp(cacheEuroDol, cacheAll);
 
                 Assert.AreEqual(DynamicCacheState.Connected, cacheEuroDol.CacheState);
                 Assert.AreEqual(DynamicCacheState.Connected, cacheAll.CacheState);
@@ -630,7 +638,7 @@ namespace DynamicData.Zmq.Tests
 
             await cache.Run();
 
-            await Task.Delay(3000);
+            await WaitForCachesToCaughtUp(cache);
 
             var ccyPairs = cache.Items
                                 .ToList();
