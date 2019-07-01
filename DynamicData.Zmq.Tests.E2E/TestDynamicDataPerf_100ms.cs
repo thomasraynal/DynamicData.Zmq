@@ -77,6 +77,8 @@ namespace DynamicData.Tests.E2E
 
             Assert.Greater(cacheEvents.Count, 0);
 
+            Assert.IsTrue(cacheEvents.All(c => c.Count() > 0));
+
             foreach (var grp in cacheEvents)
             {
                 var index = 0;

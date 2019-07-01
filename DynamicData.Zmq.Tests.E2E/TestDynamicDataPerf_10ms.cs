@@ -11,7 +11,7 @@ using DynamicData.Zmq.Producer;
 namespace DynamicData.Tests.E2E
 {
     [TestFixture]
-    public class TestDynamicDataPerf_50ms: TestDynamicDataE2E_Base
+    public class TestDynamicDataPerf_10ms: TestDynamicDataE2E_Base
     {
 
         [Test]
@@ -34,7 +34,7 @@ namespace DynamicData.Tests.E2E
                 HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromSeconds(1),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1),
-                PriceGenerationDelay = TimeSpan.FromMilliseconds(50)
+                PriceGenerationDelay = TimeSpan.FromMilliseconds(10)
             };
 
             var marketConfigurationHarmony = new MarketConfiguration("Harmony")
@@ -43,7 +43,7 @@ namespace DynamicData.Tests.E2E
                 HeartbeatEndpoint = HeartbeatEndpoint,
                 HeartbeatDelay = TimeSpan.FromSeconds(1),
                 HeartbeatTimeout = TimeSpan.FromSeconds(1),
-                PriceGenerationDelay = TimeSpan.FromMilliseconds(50)
+                PriceGenerationDelay = TimeSpan.FromMilliseconds(10)
             };
 
             var market1 = GetMarket(marketConfigurationFxConnect);

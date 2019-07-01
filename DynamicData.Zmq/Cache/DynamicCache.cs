@@ -125,7 +125,6 @@ namespace DynamicData.Zmq.Cache
                       .Cleanup(_cleanup);
 
         }
-
         public IObservable<DynamicCacheState> OnStateChanged => _state.AsObservable();
         public DynamicCacheState CacheState => _state.Value;
         public IObservable<bool> OnStaled => _isStaled.AsObservable();
@@ -326,17 +325,16 @@ namespace DynamicData.Zmq.Cache
         private void OnEventReceived(IEvent<TKey, TAggregate> @event)
         {
 
+            //if the gate is down:
+            //1) either we're caughting up, and thus using the _caughtingUpCache to keep the ongoing event stream
+            //2) either we're not and we update the _sourceCache
+            //if the gate is up, we're reconcialiting the _sourceCache with the _caughtingUpCache - hence, when the gate is down again IsCaughtingUp has been set to false and we update the _sourceCache
+            _blockEventConsumption.Wait();
+
             if (IsCaughtingUp)
             {
-                _blockEventConsumption.Wait();
-
-                if (IsCaughtingUp)
-                {
-                    _caughtingUpCache.CaughtUpEvents.Add(@event);
-                    return;
-
-                }
-
+                _caughtingUpCache.CaughtUpEvents.Add(@event);
+                return;
             }
 
             ApplyEvent(@event, (aggregate) => _sourceCache.AddOrUpdate(aggregate));

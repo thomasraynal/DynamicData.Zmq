@@ -32,7 +32,7 @@ namespace DynamicData.Tests.E2E
         protected EventSerializer _eventSerializer;
         protected InMemoryEventCache _eventCache;
 
-        [TearDown]
+        [OneTimeTearDown]
         public async Task TearDown()
         {
 

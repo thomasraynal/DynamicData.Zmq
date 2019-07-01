@@ -290,9 +290,7 @@ namespace DynamicData.Zmq.Tests
                     await Task.Delay(100);
                 }
 
-           
-
-                await Task.Delay(2000);
+                await WaitForCachesToCaughtUp(cache);
 
                 Assert.IsFalse(cache.IsCaughtingUp);
 

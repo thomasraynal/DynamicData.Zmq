@@ -13,6 +13,7 @@ test_script:
 - cmd: |
     cd %APPVEYOR_BUILD_FOLDER%
     dotnet test DynamicData.Zmq.Tests\DynamicData.Zmq.Tests.csproj --configuration Release --no-build --no-restore
+    dotnet test DynamicData.Zmq.Tests.E2E\DynamicData.Zmq.Tests.E2E.csproj --configuration Release --no-build --no-restore
 deploy:
   provider: NuGet
   api_key:

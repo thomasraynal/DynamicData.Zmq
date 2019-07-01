@@ -88,6 +88,11 @@ namespace DynamicData.Tests.E2E
                                                                      .Distinct()
                                                                      .ToList();
 
+            while (market1.Prices.GroupBy(p=> p.EventStreamId).Count() != 2)
+            {
+                await Task.Delay(500);
+            }
+
             // EUR/USD.FxConnect & EUR/USD.Harmony
             Assert.AreEqual(2, ccyPairsCacheEuroDol.Count());
             Assert.IsTrue(ccyPairsCacheEuroDol.All(subject => subject.EndsWith("FxConnect") || subject.EndsWith("Harmony")));
