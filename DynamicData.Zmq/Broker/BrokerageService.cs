@@ -8,10 +8,11 @@ using DynamicData.Zmq.EventCache;
 using DynamicData.Zmq.Shared;
 using Microsoft.Extensions.Logging;
 using DynamicData.Zmq.Serialization;
+using System.Collections.ObjectModel;
+using System;
 
 namespace DynamicData.Zmq.Broker
 {
-    //todo: error handling
     public class BrokerageService : ActorBase, IBrokerageService
     {
 
@@ -28,6 +29,7 @@ namespace DynamicData.Zmq.Broker
         private readonly IEventCache _cache;
         private readonly ISerializer _serializer;
         private readonly IBrokerageServiceConfiguration _configuration;
+ 
 
         public BrokerageService(IBrokerageServiceConfiguration configuration, ILogger<BrokerageService> logger, IEventCache cache, ISerializer serializer) : base(logger)
         {
@@ -35,8 +37,12 @@ namespace DynamicData.Zmq.Broker
             _serializer = serializer;
             _configuration = configuration;
 
+            Errors = new ObservableCollection<ActorMonitoringError>();
+
             _cancel = new CancellationTokenSource();
         }
+
+        public ObservableCollection<ActorMonitoringError> Errors { get; }
 
         protected override Task RunInternal()
         {
@@ -91,21 +97,34 @@ namespace DynamicData.Zmq.Broker
                 {
                     stateRequestSocket.ReceiveReady += async (s, e) =>
                      {
-
-                         var message = e.Socket.ReceiveMultipartMessage();
-                         var sender = message[0].Buffer;
-                         var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
-
-                         var stream = await _cache.GetStreamBySubject(request.Subject);
-
-                         var response = new StateReply()
+                         try
                          {
-                             Subject = request.Subject,
-                             Events = stream.ToList()
-                         };
 
-                         e.Socket.SendMoreFrame(sender)
-                                            .SendFrame(_serializer.Serialize(response));
+                             var message = e.Socket.ReceiveMultipartMessage();
+                             var sender = message[0].Buffer;
+                             var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
+
+                             var stream = await _cache.GetStreamBySubject(request.Subject);
+
+                             var response = new StateReply()
+                             {
+                                 Subject = request.Subject,
+                                 Events = stream.ToList()
+                             };
+
+                             e.Socket.SendMoreFrame(sender)
+                                                .SendFrame(_serializer.Serialize(response));
+
+                         }
+
+                         catch (Exception ex)
+                         {
+                             Errors.Add(new ActorMonitoringError()
+                             {
+                                 CacheErrorStatus = ActorErrorType.DynamicCacheEventHandlingFailure,
+                                 Exception = ex
+                             });
+                         }
 
                      };
 
@@ -131,17 +150,30 @@ namespace DynamicData.Zmq.Broker
 
                     stateUpdate.ReceiveReady += async (s, e) =>
                             {
+                                try
+                                {
 
-                                var message = e.Socket.ReceiveMultipartMessage();
+                                    var message = e.Socket.ReceiveMultipartMessage();
 
-                                var subject = message[0].ConvertToString();
-                                var payload = message[1];
+                                    var subject = message[0].ConvertToString();
+                                    var payload = message[1];
 
-                                var eventId = await _cache.AppendToStream(subject, payload.Buffer);
+                                    var eventId = await _cache.AppendToStream(subject, payload.Buffer);
 
-                                stateUpdatePublish.SendMoreFrame(message[0].Buffer)
-                                                  .SendMoreFrame(_serializer.Serialize(eventId))
-                                                  .SendFrame(payload.Buffer);
+                                    stateUpdatePublish.SendMoreFrame(message[0].Buffer)
+                                                      .SendMoreFrame(_serializer.Serialize(eventId))
+                                                      .SendFrame(payload.Buffer);
+
+                                }
+
+                                catch (Exception ex)
+                                {
+                                    Errors.Add(new ActorMonitoringError()
+                                    {
+                                        CacheErrorStatus = ActorErrorType.DynamicCacheEventHandlingFailure,
+                                        Exception = ex
+                                    });
+                                }
                             };
 
                     using (_workPoller = new NetMQPoller { stateUpdate, stateUpdatePublish })

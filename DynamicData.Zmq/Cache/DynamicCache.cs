@@ -45,7 +45,7 @@ namespace DynamicData.Zmq.Cache
         private readonly CaughtingUpCache<TKey, TAggregate> _caughtingUpCache;
 
         private readonly ManualResetEventSlim _blockEventConsumption;
-        private readonly ObservableCollection<DynamicCacheMonitoringError> _cacheErrors;
+        private readonly ObservableCollection<ActorMonitoringError> _cacheErrors;
         private readonly ILogger _logger;
         private readonly SourceCache<TAggregate, TKey> _sourceCache;
 
@@ -56,7 +56,7 @@ namespace DynamicData.Zmq.Cache
           
             _blockEventConsumption = new ManualResetEventSlim(true);
 
-            _cacheErrors = new ObservableCollection<DynamicCacheMonitoringError>();
+            _cacheErrors = new ObservableCollection<ActorMonitoringError>();
 
             _logger = logger;
             _cleanup = new CompositeDisposable();
@@ -74,9 +74,9 @@ namespace DynamicData.Zmq.Cache
             _getStateOfTheWorldRetyPolicy = Policy.Handle<Exception>()
                                                   .RetryForever((ex) =>
                                                   {
-                                                      _cacheErrors.Add(new DynamicCacheMonitoringError()
+                                                      _cacheErrors.Add(new ActorMonitoringError()
                                                       {
-                                                          CacheErrorStatus = DynamicCacheErrorType.GetStateOfTheWorldFailure,
+                                                          CacheErrorStatus = ActorErrorType.DynamicCacheGetStateOfTheWorldFailure,
                                                           Exception = ex
                                                       });
 
@@ -117,7 +117,7 @@ namespace DynamicData.Zmq.Cache
                       .Where(arg => arg.EventArgs.NewItems.Count > 0)
                       .Subscribe(arg =>
                       {
-                          foreach (var error in arg.EventArgs.NewItems.Cast<DynamicCacheMonitoringError>())
+                          foreach (var error in arg.EventArgs.NewItems.Cast<ActorMonitoringError>())
                           {
                               _logger.LogError(error.Message, error.Exception);
                           }
@@ -134,7 +134,7 @@ namespace DynamicData.Zmq.Cache
         public IObservable<bool> OnCaughtingUp => _isCaughtingUp.AsObservable();
         public bool IsCaughtingUp => _isCaughtingUp.Value;
         public IEnumerable<TAggregate> Items => _sourceCache.Items;
-        public ObservableCollection<DynamicCacheMonitoringError> Errors => _cacheErrors;
+        public ObservableCollection<ActorMonitoringError> Errors => _cacheErrors;
 
         private Task<IStateReply> GetStateOfTheWorld()
         {
@@ -277,9 +277,9 @@ namespace DynamicData.Zmq.Cache
                         }
                         catch (Exception ex)
                         {
-                            _cacheErrors.Add(new DynamicCacheMonitoringError()
+                            _cacheErrors.Add(new ActorMonitoringError()
                             {
-                                CacheErrorStatus = DynamicCacheErrorType.EventHandlingFailure,
+                                CacheErrorStatus = ActorErrorType.DynamicCacheEventHandlingFailure,
                                 Exception = ex
                             });
                         }
@@ -417,7 +417,6 @@ namespace DynamicData.Zmq.Cache
         protected async override Task DestroyInternal()
         {
 
-            //todo: serial disposable
             _cancel.Cancel();
 
             _cleanup.Dispose();

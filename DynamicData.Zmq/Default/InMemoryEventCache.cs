@@ -73,7 +73,6 @@ namespace DynamicData.Zmq.Default
              .Cast<IEventMessage>()
              .ToList();
 
-                //AsEnumerable is important
                 return Task.FromResult(items.AsEnumerable());
 
             }
@@ -97,7 +96,6 @@ namespace DynamicData.Zmq.Default
                .Cast<IEventMessage>()
                .ToList();
 
-                //AsEnumerable is important
                 return Task.FromResult(items.AsEnumerable());
             }
         }

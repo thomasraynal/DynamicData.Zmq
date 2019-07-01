@@ -6,7 +6,7 @@ using DynamicData.Zmq.Aggregate;
 
 namespace DynamicData.Zmq.Cache
 {
-    public interface IDynamicCache<TKey, TAggregate> : IActor where TAggregate : IAggregate<TKey>
+    public interface IDynamicCache<TKey, TAggregate> : IActor, ICanHandleErrors where TAggregate : IAggregate<TKey>
     {
         IObservableCache<TAggregate, TKey> OnItemChanged { get; }
         IEnumerable<TAggregate> Items { get; }
@@ -16,7 +16,5 @@ namespace DynamicData.Zmq.Cache
         IObservable<bool> OnStaled { get; }
         bool IsCaughtingUp { get; }
         IObservable<bool> OnCaughtingUp { get; }
-        ObservableCollection<DynamicCacheMonitoringError> Errors { get; }
-
     }
 }

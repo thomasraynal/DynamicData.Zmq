@@ -29,8 +29,6 @@ namespace DynamicData.Zmq.Cache
         public TimeSpan HeartbeatTimeout { get; set; }
         public TimeSpan StateCatchupTimeout { get; set; }
         public TimeSpan IsStaleTimeout { get; set; }
-
-        //todo : as url
         public string StateOfTheWorldEndpoint { get; set; }
         public string SubscriptionEndpoint { get; set; }
         public string HeartbeatEndpoint { get; set; }

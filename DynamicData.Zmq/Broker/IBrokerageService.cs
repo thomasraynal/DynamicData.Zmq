@@ -2,7 +2,7 @@
 
 namespace DynamicData.Zmq.Broker
 {
-    public interface IBrokerageService : IActor
+    public interface IBrokerageService : IActor, ICanHandleErrors
     {
     }
 }

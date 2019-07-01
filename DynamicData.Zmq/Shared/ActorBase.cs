@@ -68,5 +68,11 @@ namespace DynamicData.Zmq.Shared
         protected abstract Task DestroyInternal();
         protected abstract Task RunInternal();
 
+        public void Dispose()
+        {
+            if (State == ActorState.Destroyed) return;
+
+            Destroy().Wait();
+        }
     }
 }

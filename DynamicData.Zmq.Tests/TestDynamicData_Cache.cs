@@ -15,6 +15,7 @@ using DynamicData.Zmq.Event;
 using DynamicData.Zmq.EventCache;
 using DynamicData.Zmq.Cache;
 using DynamicData.Tests;
+using DynamicData.Zmq.Shared;
 
 namespace DynamicData.Zmq.Tests
 {
@@ -238,7 +239,7 @@ namespace DynamicData.Zmq.Tests
 
             var error = cache.Errors.First();
 
-            Assert.AreEqual(DynamicCacheErrorType.GetStateOfTheWorldFailure, error.CacheErrorStatus);
+            Assert.AreEqual(ActorErrorType.DynamicCacheGetStateOfTheWorldFailure, error.CacheErrorStatus);
             Assert.AreEqual(typeof(UnreachableBrokerException), error.Exception.GetType());
         }
 
@@ -671,7 +672,7 @@ namespace DynamicData.Zmq.Tests
             changeCcyPairState = new ChangeCcyPairState("test", null, CcyPairState.Passive);
 
             subject = _eventSerializer.GetSubject(changeCcyPairState);
-            Assert.AreEqual("test.Passive.*", subject);
+            Assert.AreEqual("test.Passive", subject);
 
             var changeCcyPairPrice = new ChangeCcyPairPrice(
                  ccyPairId: "test",

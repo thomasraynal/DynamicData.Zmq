@@ -1,10 +1,10 @@
 ﻿using System;
 
-namespace DynamicData.Zmq.Cache
+namespace DynamicData.Zmq.Shared
 {
-    public class DynamicCacheMonitoringError
+    public class ActorMonitoringError
     {
-        public DynamicCacheErrorType CacheErrorStatus { get; internal set; }
+        public ActorErrorType CacheErrorStatus { get; internal set; }
         public Exception Exception { get; internal set; }
 
         public string Message => $"{CacheErrorStatus} - {Exception.Message}";

@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DynamicData.Zmq\DynamicData.Zmq.csproj" />
+    <ProjectReference Include="..\..\DynamicData.Zmq.Mvc\DynamicData.Zmq.Mvc.csproj" />
   </ItemGroup>
 
 </Project>

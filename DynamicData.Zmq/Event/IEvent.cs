@@ -3,7 +3,7 @@ using System;
 
 namespace DynamicData.Zmq.Event
 {
-    //todo: string representation of event stream id
+  
     public interface IEvent
     {
         string EventId { get; }
@@ -14,6 +14,7 @@ namespace DynamicData.Zmq.Event
         long Version { get; set; }
     }
 
+    //application convention: TKey must have a distinct string serialization
     public interface IEvent<TKey, TAggregate> : IEvent where TAggregate : IAggregate<TKey>
     {
         TKey EventStreamId { get; }

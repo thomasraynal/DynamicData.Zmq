@@ -12,8 +12,7 @@ namespace DynamicData.Zmq.Event
 
     public class EventSerializer : IEventSerializer
     {
-        //todo : handle the zmq All and *
-        public const string All = "*";
+
         public const char Separator = '.';
 
         public ISerializer Serializer { get; }
@@ -44,7 +43,6 @@ namespace DynamicData.Zmq.Event
 
         public IProducerMessage ToProducerMessage<TKey, TAggregate>(IEvent<TKey, TAggregate> @event) where TAggregate : IAggregate<TKey>
         {
-            //todo : mutate explicitly
             @event.Subject = GetSubject(@event);
 
             var message = new ProducerMessage()
@@ -63,7 +61,8 @@ namespace DynamicData.Zmq.Event
             var tokens = GetTokens(@event.GetType());
 
             var subject = tokens.Select(token => @event.GetType().GetProperty(token.PropertyInfo.Name).GetValue(@event, null))
-                         .Select(obj => null == obj ? All : obj.ToString())
+                         .Select(obj => obj?.ToString())
+                         .Where(str => str != null)
                          .Aggregate((token1, token2) => $"{token1}{Separator}{token2}");
 
             return $"{@event.EventStreamId}.{subject}";

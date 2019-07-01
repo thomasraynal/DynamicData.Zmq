@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 
 namespace DynamicData.Zmq.Shared
 {
-    public interface IActor
+    public interface IActor : IDisposable
     {
         Guid Id { get; }
         Task Run();

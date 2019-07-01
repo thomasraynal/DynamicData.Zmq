@@ -3,7 +3,6 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/ac9e3j57b65ove3p?svg=true)](https://ci.appveyor.com/project/thomasraynal/dynamicdata-zmq) [![NuGet](https://img.shields.io/nuget/v/DynamicData.Zmq.svg)](https://www.nuget.org/packages/DynamicData.Zmq)
 [![NuGet](https://img.shields.io/nuget/v/DynamicData.Zmq.Mvc.svg)](https://www.nuget.org/packages/DynamicData.Zmq.Mvc)
 
-
 DynamicData.Zmq is a classic ZeroMQ (using [NetMQ](https://github.com/zeromq/netmq)) pub/sub platform using a broker for message control. Read operations on the system state are done on a local cache while write operations are done at the broker level. The broker itself act as an event database.
 
 Each producer generates events or commands on a given subject (e.g, price changed event for a currency pair). The subject itself is as such a stream of events, that is an aggregate. 
@@ -107,7 +106,6 @@ The subscriber holds a local cache, using [DynamicData](https://github.com/Rolan
         IObservable<bool> OnStaled { get; }
         bool IsCaughtingUp { get; }
         IObservable<bool> OnCaughtingUp { get; }
-        ObservableCollection<DynamicCacheMonitoringError> Errors { get; }
 
     }
 
@@ -156,11 +154,9 @@ var dynamicCacheBuilder = services.AddDynamicCacheService<string, CurrencyPair>(
                                .AddClasses(classes => classes.AssignableTo<IHostedService>())
                                .AsImplementedInterfaces());
 
-     services.AddMvc();
-
 ```
 
-Then, host it as a service in your .NET Core MVC application.
+Then, host it in your .NET Core MVC application.
 
 ```csharp
 
