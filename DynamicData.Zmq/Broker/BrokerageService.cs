@@ -75,11 +75,12 @@ namespace DynamicData.Zmq.Broker
                 {
                     heartbeatSocket.ReceiveReady += (s, e) =>
                     {
-                        var messageBytes = e.Socket.ReceiveFrameBytes();
+                        while (e.Socket.TryReceiveFrameBytes(out var messageBytes))
+                        {
+                            if (_cancel.IsCancellationRequested) return;
 
-                        if (_cancel.IsCancellationRequested) return;
-
-                        e.Socket.SendFrame(_serializer.Serialize(Heartbeat.Response));
+                            e.Socket.SendFrame(_serializer.Serialize(Heartbeat.Response));
+                        }
                     };
 
                     _heartbeatPoller.Run();
@@ -99,21 +100,25 @@ namespace DynamicData.Zmq.Broker
                      {
                          try
                          {
+                             NetMQMessage message = null;
 
-                             var message = e.Socket.ReceiveMultipartMessage();
-                             var sender = message[0].Buffer;
-                             var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
-
-                             var stream = await _cache.GetStreamBySubject(request.Subject);
-
-                             var response = new StateReply()
+                             while (e.Socket.TryReceiveMultipartMessage(ref message))
                              {
-                                 Subject = request.Subject,
-                                 Events = stream.ToList()
-                             };
+                                 var sender = message[0].Buffer;
+                                 var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
 
-                             e.Socket.SendMoreFrame(sender)
-                                                .SendFrame(_serializer.Serialize(response));
+                                 var stream = await _cache.GetStreamBySubject(request.Subject);
+
+                                 var response = new StateReply()
+                                 {
+                                     Subject = request.Subject,
+                                     Events = stream.ToList()
+                                 };
+
+                                 e.Socket.SendMoreFrame(sender)
+                                         .SendFrame(_serializer.Serialize(response));
+
+                             }
 
                          }
 
@@ -150,22 +155,26 @@ namespace DynamicData.Zmq.Broker
 
                     stateUpdate.ReceiveReady += async (s, e) =>
                             {
+
                                 try
                                 {
 
-                                    var message = e.Socket.ReceiveMultipartMessage();
+                                    NetMQMessage message = null;
 
-                                    var subject = message[0].ConvertToString();
-                                    var payload = message[1];
+                                    while (e.Socket.TryReceiveMultipartMessage(ref message))
+                                    {
 
-                                    var eventId = await _cache.AppendToStream(subject, payload.Buffer);
+                                        var subject = message[0].ConvertToString();
+                                        var payload = message[1];
+                                        var eventId = await _cache.AppendToStream(subject, payload.Buffer);
 
-                                    stateUpdatePublish.SendMoreFrame(message[0].Buffer)
-                                                      .SendMoreFrame(_serializer.Serialize(eventId))
-                                                      .SendFrame(payload.Buffer);
+                                        stateUpdatePublish.SendMoreFrame(message[0].Buffer)
+                                                          .SendMoreFrame(_serializer.Serialize(eventId))
+                                                          .SendFrame(payload.Buffer);
+
+                                    }
 
                                 }
-
                                 catch (Exception ex)
                                 {
                                     Errors.Add(new ActorMonitoringError()

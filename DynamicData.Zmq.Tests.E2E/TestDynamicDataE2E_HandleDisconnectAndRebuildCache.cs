@@ -6,6 +6,7 @@ using DynamicData.Zmq.Broker;
 using DynamicData.Zmq.Cache;
 using DynamicData.Zmq.Producer;
 using DynamicData.Zmq.Demo;
+using System.Collections.Generic;
 
 namespace DynamicData.Tests.E2E
 {
@@ -47,6 +48,15 @@ namespace DynamicData.Tests.E2E
 
             var cache = GetCache(cacheConfiguration);
             var cacheProof = GetCache(cacheConfiguration);
+
+            var cacheStates = new List<DynamicCacheState>();
+
+            var stateObservable = cache.OnStateChanged
+                           .Subscribe(state =>
+                           {
+                               cacheStates.Add(state);
+                           });
+
 
             await router.Run();
             await market1.Run();
@@ -95,14 +105,6 @@ namespace DynamicData.Tests.E2E
 
             await WaitForCachesToCaughtUp(cache, cacheProof);
 
-            Assert.AreEqual(DynamicCacheState.Reconnected, cache.CacheState);
-            Assert.AreEqual(DynamicCacheState.Reconnected, cacheProof.CacheState);
-
-            await Task.Delay(1000);
-
-            Assert.AreEqual(DynamicCacheState.Connected, cache.CacheState);
-            Assert.AreEqual(DynamicCacheState.Connected, cacheProof.CacheState);
-
             var cacheCCyPair = cache.Items.ToList();
             var cacheProofCcyPair = cacheProof.Items.ToList();
 
@@ -125,6 +127,17 @@ namespace DynamicData.Tests.E2E
             Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
             Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
             Assert.AreEqual(cacheEvents.Count(), cacheProofEvents.Count());
+
+            await Task.Delay(1000);
+
+            Assert.AreEqual(5, cacheStates.Count);
+            Assert.AreEqual(DynamicCacheState.NotConnected, cacheStates.ElementAt(0));
+            Assert.AreEqual(DynamicCacheState.Connected, cacheStates.ElementAt(1));
+            Assert.AreEqual(DynamicCacheState.Disconnected, cacheStates.ElementAt(2));
+            Assert.AreEqual(DynamicCacheState.Reconnected, cacheStates.ElementAt(3));
+            Assert.AreEqual(DynamicCacheState.Connected, cacheStates.ElementAt(4));
+
+            stateObservable.Dispose();
 
         }
 

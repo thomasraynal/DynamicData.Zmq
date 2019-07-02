@@ -259,19 +259,30 @@ namespace DynamicData.Zmq.Cache
                         try
                         {
 
-                            var message = e.Socket.ReceiveMultipartMessage();
+                            NetMQMessage message = null;
 
-                            if (_cancel.IsCancellationRequested) return;
+                            while (e.Socket.TryReceiveMultipartMessage(ref message))
+                            {
 
-                            var eventIdBytes = message[1].Buffer;
-                            var eventMessageBytes = message[2].Buffer;
+                                if (_cancel.IsCancellationRequested) return;
 
-                            var eventId = _eventSerializer.Serializer.Deserialize<IEventId>(eventIdBytes);
-                            var producerMessage = _eventSerializer.Serializer.Deserialize<IProducerMessage>(eventMessageBytes);
+                                var eventIdBytes = message[1].Buffer;
+                                var eventMessageBytes = message[2].Buffer;
 
-                            var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventId, producerMessage);
+                                var eventId = _eventSerializer.Serializer.Deserialize<IEventId>(eventIdBytes);
+                                var producerMessage = _eventSerializer.Serializer.Deserialize<IProducerMessage>(eventMessageBytes);
 
-                            OnEventReceived(@event);
+                                var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventId, producerMessage);
+
+                                OnEventReceived(@event);
+
+                                isSocketActive = true;
+
+                                if (IsStaled)
+                                {
+                                    _isStaled.OnNext(false);
+                                }
+                            }
 
                         }
                         catch (Exception ex)
@@ -281,13 +292,6 @@ namespace DynamicData.Zmq.Cache
                                 CacheErrorStatus = ActorErrorType.DynamicCacheEventHandlingFailure,
                                 Exception = ex
                             });
-                        }
-
-                        isSocketActive = true;
-
-                        if (IsStaled)
-                        {
-                            _isStaled.OnNext(false);
                         }
 
                     };
