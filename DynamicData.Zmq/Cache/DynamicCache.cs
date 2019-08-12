@@ -35,7 +35,6 @@ namespace DynamicData.Zmq.Cache
 
         private NetMQPoller _cacheUpdatePoller;
         private NetMQPoller _heartbeatPoller;
-
         private readonly BehaviorSubject<DynamicCacheState> _state;
         private readonly BehaviorSubject<bool> _isStaled;
 
@@ -261,9 +260,10 @@ namespace DynamicData.Zmq.Cache
 
                             NetMQMessage message = null;
 
+                            var events = new List<IEvent<TKey, TAggregate>>();
+
                             while (e.Socket.TryReceiveMultipartMessage(ref message))
                             {
-
                                 if (_cancel.IsCancellationRequested) return;
 
                                 var eventIdBytes = message[1].Buffer;
@@ -274,7 +274,14 @@ namespace DynamicData.Zmq.Cache
 
                                 var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventId, producerMessage);
 
-                                OnEventReceived(@event);
+                                if (_configuration.UseEventBatching)
+                                {
+                                    events.Add(@event);
+                                }
+                                else
+                                {
+                                    OnEventReceived(@event);
+                                }
 
                                 isSocketActive = true;
 
@@ -282,6 +289,12 @@ namespace DynamicData.Zmq.Cache
                                 {
                                     _isStaled.OnNext(false);
                                 }
+                            }
+
+                            if (_configuration.UseEventBatching)
+                            {
+                                OnBatchEventReceived(events);
+                                events.Clear();
                             }
 
                         }
@@ -301,6 +314,37 @@ namespace DynamicData.Zmq.Cache
                 }
 
             }
+        }
+
+        private void ApplyEvents(IEnumerable<IEvent<TKey, TAggregate>> events, Action<IEnumerable<TAggregate>> apply)
+        {
+            var aggregates = new List<TAggregate>();
+
+            foreach(var @event in events)
+            {
+                var aggregate = _sourceCache.Lookup(@event.EventStreamId);
+
+                if (!aggregate.HasValue)
+                {
+                    var @new = new TAggregate
+                    {
+                        Id = @event.EventStreamId
+                    };
+
+                    @new.Apply(@event);
+
+                    aggregates.Add(@new);
+                }
+                else
+                {
+                    aggregate.Value.Apply(@event);
+
+                    aggregates.Add(aggregate.Value);
+                }
+            }
+
+            apply(aggregates);
+
         }
 
         private void ApplyEvent(IEvent<TKey, TAggregate> @event, Action<TAggregate> apply)
@@ -324,6 +368,31 @@ namespace DynamicData.Zmq.Cache
 
                 apply(aggregate.Value);
             }
+        }
+
+        private void OnBatchEventReceived(IEnumerable<IEvent<TKey, TAggregate>> events)
+        {
+            //if the gate is down:
+            //1) either we're caughting up, and thus using the _caughtingUpCache to keep the ongoing event stream
+            //2) either we're not and we update the _sourceCache
+            //if the gate is up, we're reconcialiting the _sourceCache with the _caughtingUpCache - hence, when the gate is down again IsCaughtingUp has been set to false and we update the _sourceCache
+            _blockEventConsumption.Wait();
+
+            if (IsCaughtingUp)
+            {
+                _caughtingUpCache.CaughtUpEvents.AddRange(events);
+                return;
+            }
+
+            ApplyEvents(events, (aggregates) =>
+            {
+                _sourceCache.Edit((cache) =>
+                {
+                    cache.AddOrUpdate(aggregates);
+                });
+
+            });
+
         }
 
         private void OnEventReceived(IEvent<TKey, TAggregate> @event)

@@ -11,5 +11,6 @@ namespace DynamicData.Zmq.Cache
         string Subject { get; set; }
         string SubscriptionEndpoint { get; set; }
         int ZmqHighWatermark { get; set; }
+        bool UseEventBatching { get; set; }
     }
 }

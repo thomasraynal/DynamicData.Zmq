@@ -70,9 +70,17 @@ namespace DynamicData.Zmq.Demo
             return price;
         }
 
-        public void PublishNext()
+        public ChangeCcyPairPrice PublishNext()
         {
-            Publish(Next());
+            return PublishInternal(Next());
+        }
+
+        public ChangeCcyPairPrice PublishInternal(ChangeCcyPairPrice @event)
+        {
+            Publish(@event);
+            Prices.Add(@event);
+
+            return @event;
         }
 
         public async Task WaitUntilConnected()
@@ -98,8 +106,8 @@ namespace DynamicData.Zmq.Demo
                 {
                     var changePrice = Next();
 
-                    Publish(changePrice);
-                    Prices.Add(changePrice);
+                    PublishInternal(changePrice);
+                    
                 }
             }
         }

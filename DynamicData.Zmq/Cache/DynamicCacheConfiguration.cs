@@ -32,5 +32,6 @@ namespace DynamicData.Zmq.Cache
         public string StateOfTheWorldEndpoint { get; set; }
         public string SubscriptionEndpoint { get; set; }
         public string HeartbeatEndpoint { get; set; }
+        public bool UseEventBatching { get; set; }
     }
 }
