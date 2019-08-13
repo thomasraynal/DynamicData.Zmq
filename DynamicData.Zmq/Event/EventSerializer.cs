@@ -27,32 +27,25 @@ namespace DynamicData.Zmq.Event
             return subject.Split(Separator).First();
         }
 
-        public IEvent<TKey, TAggregate> ToEvent<TKey, TAggregate>(IEventMessage eventMessage) where TAggregate : IAggregate<TKey>
+        public IEvent<TKey, TAggregate> ToEvent<TKey, TAggregate>(in EventMessage eventMessage) where TAggregate : IAggregate<TKey>
         {
             var @event = (IEvent<TKey, TAggregate>)Serializer.Deserialize(eventMessage.ProducerMessage.MessageBytes, eventMessage.ProducerMessage.MessageType);
             @event.Version = eventMessage.EventId.Version;
             return @event;
         }
 
-        public IEvent<TKey, TAggregate> ToEvent<TKey, TAggregate>(IEventId eventId, IProducerMessage eventMessage) where TAggregate : IAggregate<TKey>
+        public IEvent<TKey, TAggregate> ToEvent<TKey, TAggregate>(in EventId eventId, in ProducerMessage eventMessage) where TAggregate : IAggregate<TKey>
         {
             var @event = (IEvent<TKey, TAggregate>)Serializer.Deserialize(eventMessage.MessageBytes, eventMessage.MessageType);
             @event.Version = eventId.Version;
             return @event;
         }
 
-        public IProducerMessage ToProducerMessage<TKey, TAggregate>(IEvent<TKey, TAggregate> @event) where TAggregate : IAggregate<TKey>
+        public ProducerMessage ToProducerMessage<TKey, TAggregate>(IEvent<TKey, TAggregate> @event) where TAggregate : IAggregate<TKey>
         {
             @event.Subject = GetSubject(@event);
 
-            var message = new ProducerMessage()
-            {
-                MessageBytes = Serializer.Serialize(@event),
-                Subject = @event.Subject,
-                MessageType = @event.GetType()
-            };
-
-            return message;
+            return new ProducerMessage(@event.Subject, Serializer.Serialize(@event), @event.GetType());
 
         }
 

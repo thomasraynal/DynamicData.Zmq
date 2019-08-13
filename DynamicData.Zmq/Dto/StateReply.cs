@@ -4,14 +4,14 @@ using System.Text;
 
 namespace DynamicData.Zmq.Dto
 {
-    public class StateReply : IStateReply
+    public class StateReply
     {
         public StateReply()
         {
-            Events = new List<IEventMessage>();
+            Events = new List<EventMessage>();
         }
 
         public string Subject { get; set; }
-        public List<IEventMessage> Events { get; set; }
+        public List<EventMessage> Events { get; set; }
     }
 }

@@ -6,6 +6,6 @@ namespace DynamicData.Zmq.Broker
     public interface IEventIdProvider
     {
         Task Reset();
-        IEventId Next(string streamName, string subject);
+        EventId Next(string streamName, string subject);
     }
 }

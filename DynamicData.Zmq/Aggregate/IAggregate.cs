@@ -8,6 +8,7 @@ namespace DynamicData.Zmq.Aggregate
         IEnumerable<IEvent> AppliedEvents { get; }
         void Apply(IEvent @event);
         int Version { get; set; }
+        bool DoStoreEvents { get; set; }
     }
 
     public interface IAggregate<TKey> : IAggregate

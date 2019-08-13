@@ -38,7 +38,7 @@ namespace DynamicData.Tests.E2E.Benchmarks
         protected InMemoryEventCache _eventCache;
 
         [Params(10_000)]
-        public int N = 100_000;
+        public int N = 10_000;
         [Params(true,false)]
         public bool UseEventBatch = true;
 
@@ -59,7 +59,7 @@ namespace DynamicData.Tests.E2E.Benchmarks
 
         [IterationSetup]
         [OneTimeSetUp]
-        public void OneTimeSetUp()
+        public void SetUp()
         {
             _eventIdProvider = new InMemoryEventIdProvider();
             _serializer = new JsonNetSerializer();
@@ -74,12 +74,6 @@ namespace DynamicData.Tests.E2E.Benchmarks
                     TypeNameHandling = TypeNameHandling.Objects,
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
                 };
-
-                settings.Converters.Add(new AbstractConverter<IEventMessage, EventMessage>());
-                settings.Converters.Add(new AbstractConverter<IProducerMessage, ProducerMessage>());
-                settings.Converters.Add(new AbstractConverter<IEventId, EventId>());
-                settings.Converters.Add(new AbstractConverter<IStateReply, StateReply>());
-                settings.Converters.Add(new AbstractConverter<IStateRequest, StateRequest>());
 
                 return settings;
             };
@@ -116,15 +110,16 @@ namespace DynamicData.Tests.E2E.Benchmarks
                 Subject = string.Empty,
                 HeartbeatDelay = TimeSpan.FromSeconds(5),
                 HeartbeatTimeout = TimeSpan.FromSeconds(5),
-                ZmqHighWatermark = 100_000,
-                UseEventBatching = UseEventBatch
+                ZmqHighWatermark = 1000,
+                UseEventBatching = UseEventBatch,
+                DoStoreEvents = false
             };
 
             _cache = GetCache(cacheConfiguration);
 
-           _cache.Run().Wait();
+            _cache.Run().Wait();
 
-             WaitForCachesToCaughtUp(_cache).Wait();
+            WaitForCachesToCaughtUp(_cache).Wait();
         }
 
 
@@ -162,10 +157,11 @@ namespace DynamicData.Tests.E2E.Benchmarks
             }
         }
 
-        [Test]
+       // [Test]
         [Benchmark]
         public void BenchmarkPerformance()
         {
+            
             Dictionary<string,ChangeCcyPairPrice> last = new Dictionary<string, ChangeCcyPairPrice>();
 
             for (var i = 0; i < N; i++)

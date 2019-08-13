@@ -8,12 +8,15 @@ namespace DynamicData.Zmq.Aggregate
     {
         private readonly List<IEvent> _appliedEvents;
 
+
         public AggregateBase()
         {
             _appliedEvents = new List<IEvent>();
 
             Version = -1;
         }
+
+        public bool DoStoreEvents { get; set; }
 
         public TKey Id { get; set; }
 
@@ -39,7 +42,7 @@ namespace DynamicData.Zmq.Aggregate
 
         private void OnEventApplied(IEvent @event)
         {
-            _appliedEvents.Add(@event);
+            if (DoStoreEvents) _appliedEvents.Add(@event);
             Version++;
         }
     }

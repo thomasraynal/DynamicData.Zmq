@@ -16,6 +16,7 @@ using DynamicData.Zmq.EventCache;
 using DynamicData.Zmq.Cache;
 using DynamicData.Tests;
 using DynamicData.Zmq.Shared;
+using System.Text;
 
 namespace DynamicData.Zmq.Tests
 {
@@ -77,12 +78,6 @@ namespace DynamicData.Zmq.Tests
                     TypeNameHandling = TypeNameHandling.Objects,
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
                 };
-
-                settings.Converters.Add(new AbstractConverter<IEventMessage, EventMessage>());
-                settings.Converters.Add(new AbstractConverter<IProducerMessage, ProducerMessage>());
-                settings.Converters.Add(new AbstractConverter<IEventId, EventId>());
-                settings.Converters.Add(new AbstractConverter<IStateReply, StateReply>());
-                settings.Converters.Add(new AbstractConverter<IStateRequest, StateRequest>());
 
                 return settings;
             };
@@ -165,10 +160,10 @@ namespace DynamicData.Zmq.Tests
 
                             if (hasResponse)
                             {
-                                var subject = message[0].ConvertToString();
+                                var subject = message[0];
                                 var payload = message[1];
 
-                                await eventCache.AppendToStream(subject, payload.Buffer);
+                                await eventCache.AppendToStream(subject.Buffer, payload.Buffer);
 
                             }
 
@@ -197,7 +192,7 @@ namespace DynamicData.Zmq.Tests
                             if (hasResponse)
                             {
                                 var sender = message[0].Buffer;
-                                var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
+                                var request = _serializer.Deserialize<StateRequest>(message[1].Buffer);
 
                                 var stream = await eventCache.GetStreamBySubject(request.Subject);
 
@@ -253,13 +248,13 @@ namespace DynamicData.Zmq.Tests
                 var topic = "EUR/USD";
                 var stateOfTheWorldEventCount = 10000;
                 var initialEventCache = 50;
-                var raisedEventDuringCacheBuilding = new List<IEventId>();
+                var raisedEventDuringCacheBuilding = new List<EventId>();
 
                 for (var i = 0; i < stateOfTheWorldEventCount; i++)
                 {
                     var next = Next(topic);
                     var message = _eventSerializer.ToProducerMessage(next);
-                    await _eventCache.AppendToStream(next.Subject, _serializer.Serialize(message));
+                    await _eventCache.AppendToStream(Encoding.UTF8.GetBytes(next.Subject), _serializer.Serialize(message));
                 }
 
                 var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
@@ -279,7 +274,7 @@ namespace DynamicData.Zmq.Tests
                     var next = Next(topic);
                     var message = _eventSerializer.ToProducerMessage(next);
                     var payload = _serializer.Serialize(message);
-                    var eventId = _eventCache.AppendToStream(next.Subject, payload).Result;
+                    var eventId = _eventCache.AppendToStream(Encoding.UTF8.GetBytes(next.Subject), payload).Result;
 
                     raisedEventDuringCacheBuilding.Add(eventId);
 
@@ -339,14 +334,8 @@ namespace DynamicData.Zmq.Tests
                 var @event = new ChangeCcyPairPrice("TEST", "TEST-Market", 0.0, 0.0, 0.0, 0.0);
                 var message = _eventSerializer.ToProducerMessage(@event);
 
-                var eventId = new EventId()
-                {
-                    EventStream = "TEST",
-                    Subject = "TEST",
-                    Timestamp = DateTime.Now.Ticks,
-                    Version = 0
-                };
-
+                var eventId = new EventId("TEST", 0, "TEST", DateTime.Now.Ticks);
+             
                 publisherSocket.SendMoreFrame(message.Subject)
                                .SendMoreFrame(_serializer.Serialize(eventId))
                                .SendFrame(_serializer.Serialize(message));
@@ -445,13 +434,7 @@ namespace DynamicData.Zmq.Tests
                       var @event = new ChangeCcyPairPrice(streamId, market, 0.0, 0.0, 0.0, 0.0);
                       var message = _eventSerializer.ToProducerMessage(@event);
 
-                      var eventId = new EventId()
-                      {
-                          EventStream = streamId,
-                          Subject = string.IsNullOrEmpty(market) ? streamId : $"{streamId}.{market}",
-                          Timestamp = DateTime.Now.Ticks,
-                          Version = 0
-                      };
+                      var eventId = new EventId(streamId, 0, string.IsNullOrEmpty(market) ? streamId : $"{streamId}.{market}", DateTime.Now.Ticks);
 
                       publisherSocket.SendMoreFrame(message.Subject)
                                      .SendMoreFrame(_serializer.Serialize(eventId))
@@ -519,13 +502,7 @@ namespace DynamicData.Zmq.Tests
                     var @event = new ChangeCcyPairPrice(streamId, market, 0.0, 0.0, 0.0, 0.0);
                     var message = _eventSerializer.ToProducerMessage(@event);
 
-                    var eventId = new EventId()
-                    {
-                        EventStream = streamId,
-                        Subject = string.IsNullOrEmpty(market) ? streamId : $"{streamId}.{market}",
-                        Timestamp = DateTime.Now.Ticks,
-                        Version = 0
-                    };
+                    var eventId = new EventId(streamId, 0, string.IsNullOrEmpty(market) ? streamId : $"{streamId}.{market}", DateTime.Now.Ticks);
 
                     publisherSocket.SendMoreFrame(message.Subject)
                                    .SendMoreFrame(_serializer.Serialize(eventId))
@@ -619,12 +596,12 @@ namespace DynamicData.Zmq.Tests
             {
                 var next = Next(topic);
                 var message = _eventSerializer.ToProducerMessage(next);
-                await _eventCache.AppendToStream(next.Subject, _serializer.Serialize(message));
+                await _eventCache.AppendToStream(Encoding.UTF8.GetBytes(next.Subject), _serializer.Serialize(message));
             }
 
             var lastPriceEvent = Next(topic);
             var lastMessage = _eventSerializer.ToProducerMessage(lastPriceEvent);
-            await _eventCache.AppendToStream(lastPriceEvent.Subject, _serializer.Serialize(lastMessage));
+            await _eventCache.AppendToStream(Encoding.UTF8.GetBytes(lastPriceEvent.Subject), _serializer.Serialize(lastMessage));
 
             var cacheConfiguration = new DynamicCacheConfiguration(ToSubscribersEndpoint, StateOfTheWorldEndpoint, HeartbeatEndpoint)
             {
@@ -699,15 +676,9 @@ namespace DynamicData.Zmq.Tests
 
                 var createEvent = new Func<IEvent<String, CurrencyPair>, Task>(async (@event) =>
                  {
-                     var message = _eventSerializer.ToProducerMessage(@event);
+                 var message = _eventSerializer.ToProducerMessage(@event);
 
-                     var eventId = new EventId()
-                     {
-                         EventStream = @event.EventStreamId,
-                         Subject = @event.Subject,
-                         Timestamp = DateTime.Now.Ticks,
-                         Version = 0
-                     };
+                     var eventId = new EventId(@event.EventStreamId, 0, @event.Subject, DateTime.Now.Ticks);
 
                      publisherSocket.SendMoreFrame(message.Subject)
                                     .SendMoreFrame(_serializer.Serialize(eventId))
@@ -759,7 +730,8 @@ namespace DynamicData.Zmq.Tests
                 Mid = 0.1,
                 Spread = 0.02,
                 State = CcyPairState.Active,
-                Id = "EUR/USD"
+                Id = "EUR/USD",
+                DoStoreEvents = true
             };
 
             var changeStateClose = new ChangeCcyPairState("EUR/USD", string.Empty, CcyPairState.Passive);

@@ -67,12 +67,6 @@ namespace DynamicData.Zmq.Tests
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
                 };
 
-                settings.Converters.Add(new AbstractConverter<IEventMessage, EventMessage>());
-                settings.Converters.Add(new AbstractConverter<IProducerMessage, ProducerMessage>());
-                settings.Converters.Add(new AbstractConverter<IEventId, EventId>());
-                settings.Converters.Add(new AbstractConverter<IStateReply, StateReply>());
-                settings.Converters.Add(new AbstractConverter<IStateRequest, StateRequest>());
-
                 return settings;
             };
 
@@ -146,14 +140,14 @@ namespace DynamicData.Zmq.Tests
                     var eventIdBytes = msg[1].Buffer;
                     var eventMessageBytes = msg[2].Buffer;
 
-                    var eventId = _eventSerializer.Serializer.Deserialize<IEventId>(eventIdBytes);
+                    var eventId = _eventSerializer.Serializer.Deserialize<EventId>(eventIdBytes);
 
                     Assert.AreEqual("EUR/USD", eventId.EventStream);
                     Assert.AreEqual("EUR/USD.0", eventId.Id);
                     Assert.AreEqual(0, eventId.Version);
                     Assert.AreEqual(message.Subject, eventId.Subject);
 
-                    var producerMessage = _eventSerializer.Serializer.Deserialize<IProducerMessage>(eventMessageBytes);
+                    var producerMessage = _eventSerializer.Serializer.Deserialize<ProducerMessage>(eventMessageBytes);
 
                     var @event = _serializer.Deserialize<ChangeCcyPairState>(producerMessage.MessageBytes);
                     
@@ -181,7 +175,7 @@ namespace DynamicData.Zmq.Tests
                     eventIdBytes = msg[1].Buffer;
                     eventMessageBytes = msg[2].Buffer;
 
-                    eventId = _eventSerializer.Serializer.Deserialize<IEventId>(eventIdBytes);
+                    eventId = _eventSerializer.Serializer.Deserialize<EventId>(eventIdBytes);
 
                     Assert.AreEqual("EUR/USD", eventId.EventStream);
                     Assert.AreEqual("EUR/USD.1", eventId.Id);

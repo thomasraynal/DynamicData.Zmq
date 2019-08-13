@@ -73,11 +73,6 @@ namespace DynamicData.Zmq.Demo
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
                 };
 
-                settings.Converters.Add(new AbstractConverter<IEventMessage, EventMessage>());
-                settings.Converters.Add(new AbstractConverter<IProducerMessage, ProducerMessage>());
-                settings.Converters.Add(new AbstractConverter<IEventId, EventId>());
-                settings.Converters.Add(new AbstractConverter<IStateReply, StateReply>());
-                settings.Converters.Add(new AbstractConverter<IStateRequest, StateRequest>());
 
                 return settings;
             };

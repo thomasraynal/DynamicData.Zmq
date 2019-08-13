@@ -4,7 +4,7 @@ using System.Text;
 
 namespace DynamicData.Zmq.Dto
 {
-    public class StateRequest : IStateRequest
+    public class StateRequest
     {
 
         public static readonly StateRequest Default = new StateRequest();

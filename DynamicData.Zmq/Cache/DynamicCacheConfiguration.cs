@@ -12,8 +12,10 @@ namespace DynamicData.Zmq.Cache
 
             IsStaleTimeout = TimeSpan.MaxValue;
             ZmqHighWatermark = 1000;
+            DoStoreEvents = true;
 
             Subject = string.Empty;
+
         }
 
         public DynamicCacheConfiguration(string subscriptionEndpoint, string stateOfTheWorldEndpoint, string hearbeatEndpoint): this()
@@ -33,5 +35,6 @@ namespace DynamicData.Zmq.Cache
         public string SubscriptionEndpoint { get; set; }
         public string HeartbeatEndpoint { get; set; }
         public bool UseEventBatching { get; set; }
+        public bool DoStoreEvents { get; set; }
     }
 }

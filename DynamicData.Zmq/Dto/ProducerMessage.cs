@@ -4,10 +4,17 @@ using System.Text;
 
 namespace DynamicData.Zmq.Dto
 {
-    public class ProducerMessage : IProducerMessage
+    public readonly struct ProducerMessage
     {
-        public string Subject { get; set; }
-        public byte[] MessageBytes { get; set; }
-        public Type MessageType { get; set; }
+        public ProducerMessage(string subject, byte[] messageBytes, Type messageType)
+        {
+            Subject = subject;
+            MessageBytes = messageBytes;
+            MessageType = messageType;
+        }
+
+        public string Subject { get;  }
+        public byte[] MessageBytes { get;  }
+        public Type MessageType { get;  }
     }
 }

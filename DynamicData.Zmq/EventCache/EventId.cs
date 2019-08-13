@@ -1,24 +1,22 @@
 ﻿namespace DynamicData.Zmq.EventCache
 {
-    public class EventId : IEventId
+    public readonly struct EventId
     {
-        public EventId()
-        {
-        }
 
-        public EventId(string eventStream, long version, string subject)
+        public EventId(string eventStream, long version, string subject, long timestamp)
         {
             EventStream = eventStream;
             Version = version;
             Subject = subject;
+            Timestamp = timestamp;
         }
 
-        public string EventStream { get; set; }
-        public long Version { get; set; }
-        public string Subject { get; set; }
+        public string EventStream { get;  }
+        public long Version { get; }
+        public string Subject { get;  }
         public string Id => $"{EventStream}.{Version}";
 
-        public long Timestamp { get; set; }
+        public long Timestamp { get;  }
 
         public override bool Equals(object obj)
         {
@@ -33,7 +31,7 @@
                 int hash = 17;
                 hash = hash * 23 + Subject.GetHashCode();
                 hash = hash * 23 + Id.GetHashCode();
-                return hash;
+                return hash; 
             }
         }
 

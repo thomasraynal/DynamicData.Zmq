@@ -18,6 +18,7 @@ using System.Collections.ObjectModel;
 using Microsoft.Extensions.Logging;
 using System.Collections.Specialized;
 using DynamicData.Zmq.Aggregate;
+using EventId = DynamicData.Zmq.EventCache.EventId;
 
 namespace DynamicData.Zmq.Cache
 {
@@ -134,9 +135,9 @@ namespace DynamicData.Zmq.Cache
         public IEnumerable<TAggregate> Items => _sourceCache.Items;
         public ObservableCollection<ActorMonitoringError> Errors => _cacheErrors;
 
-        private Task<IStateReply> GetStateOfTheWorld()
+        private Task<StateReply> GetStateOfTheWorld()
         {
-            var policyResult = _getStateOfTheWorldRetyPolicy.ExecuteAndCapture<IStateReply>(() =>
+            var policyResult = _getStateOfTheWorldRetyPolicy.ExecuteAndCapture<StateReply>(() =>
             {
                 using (var dealer = new DealerSocket())
                 {
@@ -266,11 +267,8 @@ namespace DynamicData.Zmq.Cache
                             {
                                 if (_cancel.IsCancellationRequested) return;
 
-                                var eventIdBytes = message[1].Buffer;
-                                var eventMessageBytes = message[2].Buffer;
-
-                                var eventId = _eventSerializer.Serializer.Deserialize<IEventId>(eventIdBytes);
-                                var producerMessage = _eventSerializer.Serializer.Deserialize<IProducerMessage>(eventMessageBytes);
+                                var eventId = _eventSerializer.Serializer.Deserialize<EventId>(message[1].Buffer);
+                                var producerMessage = _eventSerializer.Serializer.Deserialize<ProducerMessage>(message[2].Buffer);
 
                                 var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventId, producerMessage);
 
@@ -328,7 +326,8 @@ namespace DynamicData.Zmq.Cache
                 {
                     var @new = new TAggregate
                     {
-                        Id = @event.EventStreamId
+                        Id = @event.EventStreamId,
+                        DoStoreEvents = _configuration.DoStoreEvents
                     };
 
                     @new.Apply(@event);
@@ -355,7 +354,8 @@ namespace DynamicData.Zmq.Cache
             {
                 var @new = new TAggregate
                 {
-                    Id = @event.EventStreamId
+                    Id = @event.EventStreamId,
+                    DoStoreEvents = _configuration.DoStoreEvents
                 };
 
                 @new.Apply(@event);
@@ -435,10 +435,11 @@ namespace DynamicData.Zmq.Cache
 
                 var stateOfTheWorld = await GetStateOfTheWorld();
 
+  
                 //run all events on cache
-                foreach (var eventMessage in stateOfTheWorld.Events)
+                for (var i = 0; i < stateOfTheWorld.Events.Count; i++)
                 {
-                    var @event = _eventSerializer.ToEvent<TKey, TAggregate>(eventMessage);
+                    var @event = _eventSerializer.ToEvent<TKey, TAggregate>(stateOfTheWorld.Events[i]);
 
                     ApplyEvent(@event, (aggregate) => updater.AddOrUpdate(aggregate));
                 }

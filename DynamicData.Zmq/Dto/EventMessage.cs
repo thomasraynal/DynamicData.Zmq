@@ -5,9 +5,15 @@ using DynamicData.Zmq.EventCache;
 
 namespace DynamicData.Zmq.Dto
 {
-    public class EventMessage : IEventMessage
+    public readonly struct EventMessage
     {
-        public IEventId EventId { get; set; }
-        public IProducerMessage ProducerMessage { get; set; }
+        public EventMessage(EventId eventId, ProducerMessage producerMessage)
+        {
+            EventId = eventId;
+            ProducerMessage = producerMessage;
+        }
+
+        public EventId EventId { get; }
+        public ProducerMessage ProducerMessage { get; }
     }
 }

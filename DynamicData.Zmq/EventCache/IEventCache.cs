@@ -6,11 +6,11 @@ namespace DynamicData.Zmq.EventCache
 {
     public interface IEventCache
     {
-        Task<IEventId> AppendToStream(string subject, byte[] payload);
-        Task<IEnumerable<IEventMessage>> GetAllStreams();
-        Task<IEnumerable<IEventMessage>> GetStream(string streamId);
-        Task<IEnumerable<IEventMessage>> GetStreamBySubject(string subject);
-        Task Clear();
+        ValueTask<EventId> AppendToStream(byte[] subject, byte[] payload);
+        ValueTask<IEnumerable<EventMessage>> GetAllStreams();
+        ValueTask<IEnumerable<EventMessage>> GetStream(string streamId);
+        ValueTask<IEnumerable<EventMessage>> GetStreamBySubject(string subject);
+        ValueTask Clear();
 
     }
 }

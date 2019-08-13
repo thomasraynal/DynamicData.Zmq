@@ -105,7 +105,7 @@ namespace DynamicData.Zmq.Broker
                              while (e.Socket.TryReceiveMultipartMessage(ref message))
                              {
                                  var sender = message[0].Buffer;
-                                 var request = _serializer.Deserialize<IStateRequest>(message[1].Buffer);
+                                 var request = _serializer.Deserialize<StateRequest>(message[1].Buffer);
 
                                  var stream = await _cache.GetStreamBySubject(request.Subject);
 
@@ -164,12 +164,11 @@ namespace DynamicData.Zmq.Broker
                                     while (e.Socket.TryReceiveMultipartMessage(ref message))
                                     {
 
-                                        var subject = message[0].ConvertToString();
+                                        var subject = message[0];
                                         var payload = message[1];
-                                        var eventId = await _cache.AppendToStream(subject, payload.Buffer);
 
-                                        stateUpdatePublish.SendMoreFrame(message[0].Buffer)
-                                                          .SendMoreFrame(_serializer.Serialize(eventId))
+                                        stateUpdatePublish.SendMoreFrame(subject.Buffer)
+                                                          .SendMoreFrame(_serializer.Serialize(await _cache.AppendToStream(subject.Buffer, payload.Buffer)))
                                                           .SendFrame(payload.Buffer);
 
                                     }
